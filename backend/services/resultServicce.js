@@ -1,14 +1,10 @@
+
 const db = require("../config/db");
 
+// Get results for the logged-in student
 const getMyResults = async (userId) => {
-
-    // 1. Find student
     const [students] = await db.execute(
-        `
-        SELECT id
-        FROM students
-        WHERE user_id = ?
-        `,
+        `SELECT id FROM students WHERE user_id = ?`,
         [userId]
     );
 
@@ -20,7 +16,6 @@ const getMyResults = async (userId) => {
 
     const studentId = students[0].id;
 
-    // 2. Get student's results
     const [results] = await db.execute(
         `
         SELECT
@@ -37,10 +32,8 @@ const getMyResults = async (userId) => {
             r.result_status,
             r.created_at
         FROM results r
-        JOIN exam_attempts ea
-            ON r.attempt_id = ea.id
-        JOIN exams e
-            ON ea.exam_id = e.id
+        JOIN exam_attempts ea ON r.attempt_id = ea.id
+        JOIN exams e ON ea.exam_id = e.id
         WHERE ea.student_id = ?
         ORDER BY r.created_at DESC
         `,
@@ -50,15 +43,10 @@ const getMyResults = async (userId) => {
     return results;
 };
 
+// Get one result belonging to the logged-in student
 const getMyResultByAttempt = async (userId, attemptId) => {
-
-    // 1. Find student
     const [students] = await db.execute(
-        `
-        SELECT id
-        FROM students
-        WHERE user_id = ?
-        `,
+        `SELECT id FROM students WHERE user_id = ?`,
         [userId]
     );
 
@@ -70,7 +58,6 @@ const getMyResultByAttempt = async (userId, attemptId) => {
 
     const studentId = students[0].id;
 
-    // 2. Get specific result
     const [results] = await db.execute(
         `
         SELECT
@@ -87,10 +74,8 @@ const getMyResultByAttempt = async (userId, attemptId) => {
             r.result_status,
             r.created_at
         FROM results r
-        JOIN exam_attempts ea
-            ON r.attempt_id = ea.id
-        JOIN exams e
-            ON ea.exam_id = e.id
+        JOIN exam_attempts ea ON r.attempt_id = ea.id
+        JOIN exams e ON ea.exam_id = e.id
         WHERE r.attempt_id = ?
           AND ea.student_id = ?
         `,
@@ -106,7 +91,75 @@ const getMyResultByAttempt = async (userId, attemptId) => {
     return results[0];
 };
 
+// Admin: retrieve all results with filters
+const getAllResults = async (filters = {}) => {
+    const conditions = [];
+    const params = [];
+
+    if (filters.search) {
+        conditions.push(
+            "(u.username LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ?)"
+        );
+
+        const searchTerm = `%${filters.search}%`;
+        params.push(searchTerm, searchTerm, searchTerm);
+    }
+
+    if (filters.program) {
+        conditions.push("p.name = ?");
+        params.push(filters.program);
+    }
+
+    if (filters.department) {
+        conditions.push("d.name = ?");
+        params.push(filters.department);
+    }
+
+    if (filters.status) {
+        conditions.push("LOWER(r.result_status) = ?");
+        params.push(String(filters.status).toLowerCase());
+    }
+
+    const whereClause = conditions.length
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "";
+
+    const [results] = await db.execute(
+        `
+        SELECT
+            r.id,
+            r.attempt_id,
+            u.username,
+            CONCAT_WS(' ', s.first_name, s.last_name) AS student_name,
+            e.title AS exam_title,
+            d.name AS department_name,
+            p.name AS program_name,
+            r.total_questions,
+            r.correct_answers,
+            r.wrong_answers,
+            r.total_marks,
+            r.obtained_marks,
+            r.percentage,
+            r.result_status,
+            r.created_at
+        FROM results r
+        JOIN exam_attempts ea ON r.attempt_id = ea.id
+        JOIN exams e ON ea.exam_id = e.id
+        JOIN students s ON ea.student_id = s.id
+        JOIN users u ON s.user_id = u.id
+        LEFT JOIN departments d ON s.department_id = d.id
+        LEFT JOIN programs p ON d.program_id = p.id
+        ${whereClause}
+        ORDER BY r.created_at DESC
+        `,
+        params
+    );
+
+    return results;
+};
+
 module.exports = {
     getMyResults,
-    getMyResultByAttempt
+    getMyResultByAttempt,
+    getAllResults
 };

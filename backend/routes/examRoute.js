@@ -1,21 +1,61 @@
+
 const express = require("express");
 
 const router = express.Router();
-const authenticate = require("../middleware/authMiddleware");
 
+const authenticate = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 const examController = require("../controller/examControlller");
 
-router.post("/", examController.createExam);
+// Admin routes
+router.post(
+    "/",
+    authenticate,
+    roleMiddleware("admin"),
+    examController.createExam
+);
 
-router.get("/", examController.getAllExams);
+router.get(
+    "/",
+    authenticate,
+    roleMiddleware("admin"),
+    examController.getAllExams
+);
 
-router.patch("/:id/publish", examController.publishExam);
-router.get("/student/available",authenticate,examController.getAvailableExamsForStudent);
+router.patch(
+    "/:id/publish",
+    authenticate,
+    roleMiddleware("admin"),
+    examController.publishExam
+);
 
-router.get("/:id", examController.getExamById);
+router.put(
+    "/:id",
+    authenticate,
+    roleMiddleware("admin"),
+    examController.updateExam
+);
 
-router.put("/:id", examController.updateExam);
+router.delete(
+    "/:id",
+    authenticate,
+    roleMiddleware("admin"),
+    examController.deleteExam
+);
 
-router.delete("/:id", examController.deleteExam);
+// Exam details
+router.get(
+    "/:id",
+    authenticate,
+    examController.getExamById
+);
+
+// Student routes
+router.get(
+    "/student/available",
+    authenticate,
+    roleMiddleware("student"),
+    examController.getAvailableExamsForStudent
+);
 
 module.exports = router;

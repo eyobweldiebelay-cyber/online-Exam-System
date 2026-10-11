@@ -1,308 +1,188 @@
+
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import "../../css/login.css";
-import api from "../../pages/services/api";
+import { useAuth } from "../../context/AuthContext";
+import imaglogo from "../../image/logo.jpg";
 
 function Login() {
-
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
-    // Validation errors
-    const [usernameError, setUsernameError] =
-        useState("");
-
-    const [passwordError, setPasswordError] =
-        useState("");
-
-    // Server message
-    const [message, setMessage] =
-        useState("");
-
-    const [showPassword, setShowPassword] =
-        useState(false);
+    const [usernameError, setUsernameError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [message, setMessage] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (event) => {
-
         event.preventDefault();
 
         let isValid = true;
-
         setMessage("");
 
-        // Student ID validation
+        // Validate username
         if (!username.trim()) {
-
-            setUsernameError(
-                "Student ID is required"
-            );
-
+            setUsernameError("Student ID is required");
             isValid = false;
-
         } else {
-
             setUsernameError("");
         }
 
-        // Password validation
+        // Validate password
         if (!password) {
-
-            setPasswordError(
-                "Password is required"
-            );
-
+            setPasswordError("Password is required");
             isValid = false;
-
         } else {
-
             setPasswordError("");
         }
 
-        // Stop if validation fails
         if (!isValid) {
-
-            console.log(
-                "Form submission failed"
-            );
-
             return;
         }
 
-        console.log(
-            "Form validation successful"
-        );
-
-        // Send data to backend
         try {
+            setIsSubmitting(true);
 
-            const response = await api.post("/auth/login",
-                {
-                    username: username.trim(),
-                    password: password
+            // Login through the existing AuthContext
+            const data = await login(username.trim(), password);
+
+            setMessage("Login successful");
+
+            // Navigate according to role and password status
+            if (data.user.role === "student") {
+                if (data.user.must_change_password) {
+                    navigate("/change-password", { replace: true });
+                } else {
+                    navigate("/student", { replace: true });
                 }
-            );
+                return;
+            }
 
-            console.log(
-                "Backend output:",
-                response.data
-            );
+            if (data.user.role === "admin") {
+                navigate("/admin", { replace: true });
+                return;
+            }
 
-            // Save token
-            localStorage.setItem(
-                "token",
-                response.data.token
-            );
-
-            // Save user
-            localStorage.setItem(
-                "user",
-                JSON.stringify(
-                    response.data.user
-                )
-            );
+            setMessage("Your account role is not recognized.");
+        } catch (error) {
+            console.error("Login error:", error);
 
             setMessage(
-                "User Login successfully"
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to connect to the server."
             );
-
-            // Navigate according to role
-            if (
-                response.data.user.role ===
-                "student"
-            ) {
-
-                navigate("/student");
-
-                return;
-            }
-
-            if (
-                response.data.user.role ===
-                "admin"
-            ) {
-
-                navigate("/admin");
-
-                return;
-            }
-
-        } catch (error) {
-
-            console.log(
-                "Login error:",
-                error.response?.data
-            );
-
-            if (
-                error.response?.data?.message
-            ) {
-
-                setMessage(
-                    error.response.data.message
-                );
-
-            } else {
-
-                setMessage(
-                    "Unable to connect to the server."
-                );
-            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     function handlePasswordVisibility() {
-
-        setShowPassword(
-            (previousValue) =>
-                !previousValue
-        );
+        setShowPassword((previousValue) => !previousValue);
     }
 
     return (
-
         <div className="login-page">
-
             <div className="login-card">
-
                 <div className="login-header">
-
                     <div className="college-logo">
-                        LOGO
+                        <img src={imaglogo} alt="College logo" />
                     </div>
 
-                    <h1>
-                        Online Examination System
-                    </h1>
-
-                    <p>
-                        Login to continue
-                    </p>
-
+                    <h1>Welcome To Online Examination System</h1>
                 </div>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="login-form"
-                >
-
-                    {/* Student ID */}
-
+                <form onSubmit={handleSubmit} className="login-form">
+                    {/* Username */}
                     <div className="form-group">
-
                         <label htmlFor="username">
-                            Student ID
+                            Student username
                         </label>
 
                         <input
                             id="username"
                             type="text"
-                            placeholder="Enter your student ID"
+                            placeholder="Enter your student ID or username"
                             value={username}
                             onChange={(event) =>
-                                setUsername(
-                                    event.target.value
-                                )
+                                setUsername(event.target.value)
                             }
+                            autoComplete="username"
                         />
 
                         {usernameError && (
-
                             <p className="login-error">
                                 {usernameError}
                             </p>
-
                         )}
-
                     </div>
 
-
                     {/* Password */}
-
                     <div className="form-group">
-
                         <label htmlFor="password">
                             Password
                         </label>
 
                         <div className="password-wrapper">
-
                             <input
                                 id="password"
-                                type={
-                                    showPassword
-                                        ? "text"
-                                        : "password"
-                                }
+                                type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
                                 value={password}
                                 onChange={(event) =>
-                                    setPassword(
-                                        event.target.value
-                                    )
+                                    setPassword(event.target.value)
                                 }
+                                autoComplete="current-password"
                             />
 
                             <button
                                 type="button"
                                 className="password-toggle"
-                                onClick={
-                                    handlePasswordVisibility
+                                onClick={handlePasswordVisibility}
+                                aria-label={
+                                    showPassword
+                                        ? "Hide password"
+                                        : "Show password"
                                 }
                             >
-
                                 {showPassword ? (
-                                    <EyeOff
-                                        size={20}
-                                    />
+                                    <EyeOff size={20} />
                                 ) : (
-                                    <Eye
-                                        size={20}
-                                    />
+                                    <Eye size={20} />
                                 )}
-
                             </button>
-
                         </div>
 
                         {passwordError && (
-
                             <p className="login-error">
                                 {passwordError}
                             </p>
-
                         )}
-
                     </div>
 
-
                     {/* Server message */}
-
                     {message && (
-
-                        <p className="login-message">
+                        <p className="login-message" role="status">
                             {message}
                         </p>
-
                     )}
 
-
                     {/* Login button */}
-
                     <button
                         type="submit"
                         className="login-button"
+                        disabled={isSubmitting}
                     >
-                        Login
+                        {isSubmitting ? "Logging in..." : "Login Here"}
                     </button>
-
                 </form>
-
             </div>
-
         </div>
     );
 }

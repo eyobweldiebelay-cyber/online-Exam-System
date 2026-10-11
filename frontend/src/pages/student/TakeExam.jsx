@@ -1,1161 +1,708 @@
-import React, {
-    useEffect,
-    useState
-} from "react";
-
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-    useNavigate,
-    useParams
-} from "react-router-dom";
-
-import {
-    AlertTriangle,
-    CheckCircle,
     ChevronLeft,
     ChevronRight,
-    Clock,
     Send
 } from "lucide-react";
+import logoimage from "../../image/logo.jpg";
 
 import api from "../../pages/services/api";
-
 import "../../css/student/exam.css";
 
-
-function TakeExam() {
-
+const TakeExam = () => {
     const { examId } = useParams();
-
     const navigate = useNavigate();
 
-
     const [exam, setExam] = useState(null);
+    const [attemptId, setAttemptId] = useState(null);
+    const [questions, setQuestions] = useState([]);
 
-    const [attemptId, setAttemptId] =
-        useState(null);
+    const [answers, setAnswers] = useState({});
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-    const [questions, setQuestions] =
-        useState([]);
+    const [timeLeft, setTimeLeft] = useState(null);
 
-    const [answers, setAnswers] =
-        useState({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    const [currentQuestionIndex, setCurrentQuestionIndex] =
-        useState(0);
+    const token = localStorage.getItem("token");
 
-    const [timeLeft, setTimeLeft] =
-        useState(0);
-
-    const [loading, setLoading] =
-        useState(true);
-
-    const [error, setError] =
-        useState("");
-
-    const [submitting, setSubmitting] =
-        useState(false);
-
-    const [showSubmitModal, setShowSubmitModal] =
-        useState(false);
-
-
-    // ======================================================
-    // START EXAM
-    // ======================================================
-
+    // =========================================================
+    // START / RESUME EXAM
+    // =========================================================
     useEffect(() => {
+        const startExam = async () => {
+            try {
+                setLoading(true);
+                setError("");
 
-        startExam();
+                if (!token) {
+                    navigate("/login");
+                    return;
+                }
 
-    }, [examId]);
-
-
-    async function startExam() {
-
-        try {
-
-            setLoading(true);
-
-            setError("");
-
-            const token =
-                localStorage.getItem("token");
-
-
-            const response =
-                await api.post(
+                const response = await api.post(
                     `/attempts/start/${examId}`,
                     {},
                     {
                         headers: {
-                            Authorization:
-                                `Bearer ${token}`
+                            Authorization: `Bearer ${token}`
                         }
                     }
                 );
 
+                const data = response.data;
 
-            const data =
-                response.data;
-
-
-            console.log(
-                "Exam started:",
-                data
-            );
-
-
-            setAttemptId(
-                data.attempt_id
-            );
-
-            setExam(
-                data.exam
-            );
-
-            setQuestions(
-                data.questions || []
-            );
-
-
-            if (
-                data.exam &&
-                data.exam.duration_minutes
-            ) {
-
-                setTimeLeft(
-                    data.exam.duration_minutes * 60
+                console.log("START EXAM RESPONSE:", data);
+                console.log("DURATION:", data.duration_minutes);
+                console.log("QUESTIONS:", data.questions);
+                console.log(
+                    "QUESTION COUNT:",
+                    data.questions?.length
                 );
 
+                // -------------------------------------------------
+                // EXAM DATA
+                // -------------------------------------------------
+                setExam(data.exam);
+
+                // -------------------------------------------------
+                // ATTEMPT ID
+                // -------------------------------------------------
+                setAttemptId(
+                    data.attempt_id || data.attemptId
+                );
+
+                // -------------------------------------------------
+                // QUESTIONS
+                // -------------------------------------------------
+                const receivedQuestions = Array.isArray(
+                    data.questions
+                )
+                    ? data.questions
+                    : [];
+
+                setQuestions(receivedQuestions);
+
+                // -------------------------------------------------
+                // TIMER
+                // -------------------------------------------------
+                // Backend returns:
+                // duration_minutes: 60
+                //
+                // Convert minutes to seconds.
+                // -------------------------------------------------
+                const durationMinutes = Number(
+                    data.exam?.duration_minutes
+                );
+
+                if (
+                    !Number.isFinite(durationMinutes) ||
+                    durationMinutes <= 0
+                ) {
+                    setError(
+                        "Invalid examination duration."
+                    );
+                    return;
+                }
+
+                const totalSeconds =
+                    Math.floor(durationMinutes * 60);
+
+                console.log(
+                    "TIMER SECONDS:",
+                    totalSeconds
+                );
+
+                setTimeLeft(totalSeconds);
+
+            } catch (err) {
+                console.error(
+                    "Start exam error:",
+                    err
+                );
+
+                setError(
+                    err.response?.data?.message ||
+                        "Unable to start examination."
+                );
+            } finally {
+                setLoading(false);
             }
+        };
 
+        startExam();
+    }, [examId, navigate, token]);
 
-        } catch (err) {
-
-            console.error(
-                "Start exam error:",
-                err
-            );
-
-
-            setError(
-                err.response?.data?.message ||
-                "Unable to start the examination."
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    }
-
-
-    // ======================================================
+    // =========================================================
     // COUNTDOWN TIMER
-    // ======================================================
-
+    // =========================================================
     useEffect(() => {
-
         if (
-            loading ||
-            !exam ||
+            timeLeft === null ||
             timeLeft <= 0 ||
-            submitting
+            loading
         ) {
             return;
         }
 
+        const timer = setInterval(() => {
+            setTimeLeft((previousTime) => {
+                if (
+                    previousTime === null ||
+                    previousTime <= 1
+                ) {
+                    clearInterval(timer);
+                    return 0;
+                }
 
-        const timer =
-            setInterval(() => {
-
-                setTimeLeft(
-                    previousTime => {
-
-                        if (
-                            previousTime <= 1
-                        ) {
-
-                            clearInterval(timer);
-
-                            handleAutoSubmit();
-
-                            return 0;
-
-                        }
-
-                        return previousTime - 1;
-
-                    }
-                );
-
-            }, 1000);
-
+                return previousTime - 1;
+            });
+        }, 1000);
 
         return () => {
-
             clearInterval(timer);
-
         };
+    }, [loading, timeLeft]);
 
+    // =========================================================
+    // AUTO SUBMIT WHEN TIMER REACHES ZERO
+    // =========================================================
+    useEffect(() => {
+        if (
+            timeLeft === 0 &&
+            attemptId &&
+            !loading &&
+            !submitting
+        ) {
+            submitExam();
+        }
     }, [
-        loading,
-        exam,
         timeLeft,
+        attemptId,
+        loading,
         submitting
     ]);
 
-
-    // ======================================================
+    // =========================================================
     // FORMAT TIMER
-    // ======================================================
+    // =========================================================
+    const formatTime = (seconds) => {
+        if (
+            seconds === null ||
+            seconds === undefined
+        ) {
+            return "00:00:00";
+        }
 
-    function formatTime(seconds) {
-
-        const minutes =
-            Math.floor(seconds / 60);
-
-        const remainingSeconds =
-            seconds % 60;
-
-
-        return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
-
-    }
-
-
-    // ======================================================
-    // SELECT ANSWER
-    // ======================================================
-
-    function handleAnswerSelect(
-        questionId,
-        optionId
-    ) {
-
-        setAnswers(
-            previousAnswers => ({
-                ...previousAnswers,
-
-                [questionId]:
-                    optionId
-            })
+        const safeSeconds = Math.max(
+            0,
+            Math.floor(seconds)
         );
 
-    }
+        const hours = Math.floor(
+            safeSeconds / 3600
+        );
 
+        const minutes = Math.floor(
+            (safeSeconds % 3600) / 60
+        );
 
-    // ======================================================
-    // NEXT QUESTION
-    // ======================================================
+        const secs =
+            safeSeconds % 60;
 
-    function goToNextQuestion() {
+        return `${String(hours).padStart(
+            2,
+            "0"
+        )}:${String(minutes).padStart(
+            2,
+            "0"
+        )}:${String(secs).padStart(
+            2,
+            "0"
+        )}`;
+    };
 
+    // =========================================================
+    // SELECT ANSWER
+    // =========================================================
+    const selectAnswer = (
+        questionId,
+        optionId
+    ) => {
+        setAnswers((previous) => ({
+            ...previous,
+            [questionId]: optionId
+        }));
+    };
+
+    // =========================================================
+    // PREVIOUS
+    // =========================================================
+    const goToPreviousQuestion = () => {
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex(
+                (previous) =>
+                    previous - 1
+            );
+        }
+    };
+
+    // =========================================================
+    // NEXT
+    // =========================================================
+    const goToNextQuestion = () => {
         if (
             currentQuestionIndex <
             questions.length - 1
         ) {
-
             setCurrentQuestionIndex(
-                previousIndex =>
-                    previousIndex + 1
+                (previous) =>
+                    previous + 1
             );
-
         }
+    };
 
-    }
-
-
-    // ======================================================
-    // PREVIOUS QUESTION
-    // ======================================================
-
-    function goToPreviousQuestion() {
-
+    // =========================================================
+    // QUESTION NAVIGATION
+    // =========================================================
+    const goToQuestion = (index) => {
         if (
-            currentQuestionIndex > 0
+            index >= 0 &&
+            index < questions.length
         ) {
-
-            setCurrentQuestionIndex(
-                previousIndex =>
-                    previousIndex - 1
-            );
-
+            setCurrentQuestionIndex(index);
         }
+    };
 
-    }
-
-
-    // ======================================================
-    // GO TO QUESTION
-    // ======================================================
-
-    function goToQuestion(index) {
-
-        setCurrentQuestionIndex(index);
-
-    }
-
-
-    // ======================================================
-    // OPEN SUBMIT MODAL
-    // ======================================================
-
-    function openSubmitModal() {
-
-        setShowSubmitModal(true);
-
-    }
-
-
-    // ======================================================
-    // CLOSE SUBMIT MODAL
-    // ======================================================
-
-    function closeSubmitModal() {
-
-        if (!submitting) {
-
-            setShowSubmitModal(false);
-
-        }
-
-    }
-
-
-    // ======================================================
-    // AUTO SUBMIT
-    // ======================================================
-
-    function handleAutoSubmit() {
-
-        submitExam();
-
-    }
-
-
-    // ======================================================
+    // =========================================================
     // SUBMIT EXAM
-    // ======================================================
-
-    async function submitExam() {
-
+    // =========================================================
+    const submitExam = async () => {
         if (
             submitting ||
             !attemptId
         ) {
-
             return;
-
         }
 
-
         try {
-
             setSubmitting(true);
-
             setError("");
 
-
-            const token =
-                localStorage.getItem("token");
-
-
-            // --------------------------------------------------
-            // Create answer array
-            // Only send questions that have an answer
-            // --------------------------------------------------
-
             const answerArray =
-                questions
-                    .filter(
-                        question =>
-                            answers[question.id] !== undefined
-                    )
-                    .map(
-                        question => ({
-                            question_id:
-                                question.id,
+                Object.entries(answers).map(
+                    ([questionId, optionId]) => ({
+                        question_id:
+                            Number(questionId),
 
-                            selected_option_id:
-                                answers[question.id]
-                        })
-                    );
-
+                        selected_option_id:
+                            Number(optionId)
+                    })
+                );
 
             console.log(
-                "Attempt ID:",
-                attemptId
-            );
-
-            console.log(
-                "Answers being submitted:",
+                "SUBMIT ANSWERS:",
                 answerArray
             );
 
-
-            // --------------------------------------------------
-            // Prevent empty submission
-            // --------------------------------------------------
-
-            if (
-                answerArray.length === 0
-            ) {
-
-                setError(
-                    "Please answer at least one question before submitting."
-                );
-
-                setSubmitting(false);
-
-                setShowSubmitModal(false);
-
-                return;
-
-            }
-
-
-            // --------------------------------------------------
-            // Send submission
-            // --------------------------------------------------
-
-            const response =
-                await api.post(
-                    `/attempts/submit/${attemptId}`,
-
-                    {
-                        answers:
-                            answerArray
-                    },
-
-                    {
-                        headers: {
-                            Authorization:
-                                `Bearer ${token}`,
-
-                            "Content-Type":
-                                "application/json"
-                        }
+            // -------------------------------------------------
+            // SUBMIT EXAM
+            // -------------------------------------------------
+            const response = await api.post(
+                `/attempts/submit/${attemptId}`,
+                {
+                    answers: answerArray
+                },
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
                     }
-                );
+                }
+            );
 
-
+            // -------------------------------------------------
+            // SHOW BACKEND RESULT
+            // -------------------------------------------------
             console.log(
-                "Submit response:",
+                "SUBMIT EXAM RESPONSE:",
                 response.data
             );
 
-
-            const result =
-                response.data.result;
-
-
-            if (!result) {
-
-                throw new Error(
-                    "Result was not returned by the server."
-                );
-
-            }
-
-
-            // --------------------------------------------------
-            // Navigate to Result page
-            // --------------------------------------------------
-
-           
-
-navigate(
-    `/student/result/${attemptId}`,
-    {
-        state: {
-            result: result
-        }
-    }
-);
+            // -------------------------------------------------
+            // GO TO RESULT PAGE
+            // Pass the backend result to Result.jsx
+            // -------------------------------------------------
+            navigate(
+                `/student/result/${attemptId}`,
+                {
+                    replace: true,
+                    state: {
+                        result:
+                            response.data?.result ||
+                            null
+                    }
+                }
+            );
 
         } catch (err) {
-
             console.error(
                 "Submit exam error:",
                 err
             );
 
-
-            console.error(
-                "Backend response:",
-                err.response?.data
-            );
-
-
             setError(
                 err.response?.data?.message ||
-                err.message ||
-                "Unable to submit the examination."
+                    "Failed to submit examination."
             );
 
-
             setSubmitting(false);
-
         }
+    };
 
-    }
-
-
-    // ======================================================
+    // =========================================================
     // LOADING
-    // ======================================================
-
+    // =========================================================
     if (loading) {
-
         return (
-
-            <div className="take-exam-loading">
-
-                <div className="loading-spinner"></div>
+            <div className="exam-screen-loading">
+                <div className="exam-loading-spinner"></div>
 
                 <p>
-                    Starting examination...
+                    Loading examination...
                 </p>
-
             </div>
-
         );
-
     }
 
-
-    // ======================================================
-    // START ERROR
-    // ======================================================
-
+    // =========================================================
+    // ERROR
+    // =========================================================
     if (
         error &&
-        !exam
+        questions.length === 0
     ) {
-
         return (
-
-            <div className="take-exam-error">
-
-                <AlertTriangle
-                    size={42}
-                />
-
+            <div className="exam-screen-error">
                 <h2>
-                    Unable to Start Examination
+                    Examination Error
                 </h2>
 
-                <p>
-                    {error}
-                </p>
+                <p>{error}</p>
 
                 <button
                     type="button"
                     onClick={() =>
-                        navigate("/student")
+                        navigate(
+                            "/student"
+                        )
                     }
                 >
                     Back to Examinations
                 </button>
-
             </div>
-
         );
-
     }
 
-
-    // ======================================================
+    // =========================================================
     // NO QUESTIONS
-    // ======================================================
-
-    if (
-        !exam ||
-        questions.length === 0
-    ) {
-
+    // =========================================================
+    if (questions.length === 0) {
         return (
-
-            <div className="take-exam-error">
-
-                <AlertTriangle
-                    size={42}
-                />
-
+            <div className="exam-screen-error">
                 <h2>
                     No Questions Available
                 </h2>
 
                 <p>
                     This examination does not
-                    currently contain any questions.
+                    have any questions assigned.
                 </p>
-
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate("/student")
-                    }
-                >
-                    Back to Examinations
-                </button>
-
             </div>
-
         );
-
     }
 
-
-    // ======================================================
+    // =========================================================
     // CURRENT QUESTION
-    // ======================================================
-
+    // =========================================================
     const currentQuestion =
         questions[currentQuestionIndex];
 
+    const questionId =
+        currentQuestion.id;
 
     const selectedOption =
-        answers[currentQuestion.id];
+        answers[questionId];
 
+    const options =
+        currentQuestion.options ||
+        currentQuestion.question_options ||
+        [];
 
-    const answeredCount =
-        Object.keys(answers).length;
+    const isFirstQuestion =
+        currentQuestionIndex === 0;
 
+    const isLastQuestion =
+        currentQuestionIndex ===
+        questions.length - 1;
 
-    // ======================================================
-    // PAGE
-    // ======================================================
-
+    // =========================================================
+    // RENDER
+    // =========================================================
     return (
+        <div className="exit-exam-screen">
 
-        <div className="take-exam-page">
+            {/* =================================================
+                EXAM HEADER
+               ================================================= */}
+            <header className="exit-exam-header">
 
+                <div className="exit-exam-brand">
 
-            {/* ==================================================
-                HEADER
-            ================================================== */}
+                    <img src={logoimage}
+                        alt="College Logo"
+                        className="exit-exam-logo"
+                    />
 
-            <div className="take-exam-header">
+                    <div className="exit-exam-title">
+                        {exam?.title ||
+                            "INFORMATION TECHNOLOGY EXIT EXAM"}
+                    </div>
 
-                <div>
+                </div>
 
-                    <span className="exam-label">
-                        Examination
-                    </span>
+                {/* TIMER */}
+                <div
+                    className={`exit-exam-timer ${
+                        timeLeft <= 300
+                            ? "timer-warning"
+                            : ""
+                    }`}
+                >
+                    {formatTime(timeLeft)}
+                </div>
+
+            </header>
+
+            {/* =================================================
+                MAIN QUESTION AREA
+               ================================================= */}
+            <main className="exit-exam-main">
+
+                {error && (
+                    <div className="exam-inline-error">
+                        {error}
+                    </div>
+                )}
+
+                {/* QUESTION NUMBER */}
+                <div className="exit-exam-question-count">
+                    Question{" "}
+                    {currentQuestionIndex + 1}{" "}
+                    of{" "}
+                    {questions.length}
+                </div>
+
+                {/* QUESTION */}
+                <section className="exit-exam-question">
 
                     <h1>
-                        {exam.title}
+                        {
+                            currentQuestion.question_text
+                        }
                     </h1>
 
-                </div>
-
-
-                <div
-                    className={
-                        timeLeft <= 300
-                            ? "exam-timer danger"
-                            : "exam-timer"
-                    }
-                >
-
-                    <Clock
-                        size={22}
-                    />
-
-                    <div>
-
-                        <span>
-                            Time Remaining
-                        </span>
-
-                        <strong>
-                            {formatTime(timeLeft)}
-                        </strong>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {/* ==================================================
-                PROGRESS
-            ================================================== */}
-
-            <div className="exam-progress">
-
-                <div className="progress-info">
-
-                    <span>
-
-                        Question{" "}
-
-                        {currentQuestionIndex + 1}
-
-                        {" "}of{" "}
-
-                        {questions.length}
-
-                    </span>
-
-
-                    <span>
-
-                        {answeredCount}
-                        {" "}
-                        answered
-
-                    </span>
-
-                </div>
-
-
-                <div className="progress-track">
-
-                    <div
-                        className="progress-fill"
-                        style={{
-                            width:
-                                `${(
-                                    (
-                                        currentQuestionIndex + 1
-                                    ) /
-                                    questions.length
-                                ) * 100}%`
-                        }}
-                    ></div>
-
-                </div>
-
-            </div>
-
-
-            {/* ==================================================
-                CONTENT
-            ================================================== */}
-
-            <div className="take-exam-content">
-
-
-                {/* ==================================================
-                    QUESTION
-                ================================================== */}
-
-                <main className="question-section">
-
-                    <div className="question-card">
-
-                        <div className="question-top">
-
-                            <span>
-
-                                Question{" "}
-
-                                {currentQuestionIndex + 1}
-
-                            </span>
-
-
-                            <span>
-
-                                {currentQuestion.marks}
-                                {" "}
-                                mark
-
-                            </span>
-
-                        </div>
-
-
-                        <h2>
-                            {currentQuestion.question_text}
-                        </h2>
-
-
-                        <div className="options-list">
-
-                            {currentQuestion.options.map(
-                                (
-                                    option,
-                                    index
-                                ) => (
-
-                                    <button
-                                        key={
-                                            option.id
-                                        }
-                                        type="button"
-                                        className={
-                                            selectedOption ===
-                                            option.id
-                                                ? "answer-option selected"
-                                                : "answer-option"
-                                        }
-                                        onClick={() =>
-                                            handleAnswerSelect(
-                                                currentQuestion.id,
-                                                option.id
-                                            )
-                                        }
-                                    >
-
-                                        <span className="option-letter">
-
-                                            {String.fromCharCode(
-                                                65 + index
-                                            )}
-
-                                        </span>
-
-
-                                        <span className="option-text">
-
-                                            {option.option_text}
-
-                                        </span>
-
-
-                                        {selectedOption ===
-                                            option.id && (
-
-                                            <CheckCircle
-                                                size={21}
-                                                className="selected-icon"
-                                            />
-
-                                        )}
-
-                                    </button>
-
-                                )
-                            )}
-
-                        </div>
-
-                    </div>
-
-
-                    {/* ==================================================
-                        QUESTION ACTIONS
-                    ================================================== */}
-
-                    <div className="question-actions">
-
-
-                        <button
-                            type="button"
-                            className="previous-button"
-                            onClick={
-                                goToPreviousQuestion
-                            }
-                            disabled={
-                                currentQuestionIndex === 0
-                            }
-                        >
-
-                            <ChevronLeft
-                                size={19}
-                            />
-
-                            Previous
-
-                        </button>
-
-
-                        {currentQuestionIndex <
-                            questions.length - 1 ? (
-
-                            <button
-                                type="button"
-                                className="next-button"
-                                onClick={
-                                    goToNextQuestion
-                                }
-                            >
-
-                                Next
-
-                                <ChevronRight
-                                    size={19}
-                                />
-
-                            </button>
-
-                        ) : (
-
-                            <button
-                                type="button"
-                                className="submit-button"
-                                onClick={
-                                    openSubmitModal
-                                }
-                                disabled={
-                                    submitting
-                                }
-                            >
-
-                                <Send
-                                    size={18}
-                                />
-
-                                Submit Exam
-
-                            </button>
-
-                        )}
-
-                    </div>
-
-                </main>
-
-
-                {/* ==================================================
-                    QUESTION NAVIGATION
-                ================================================== */}
-
-                <aside className="question-navigation">
-
-                    <div className="navigation-header">
-
-                        <h3>
-                            Questions
-                        </h3>
-
-                        <span>
-
-                            {answeredCount}/
-                            {questions.length}
-
-                        </span>
-
-                    </div>
-
-
-                    <div className="question-number-grid">
-
-                        {questions.map(
-                            (
-                                question,
-                                index
-                            ) => {
-
-                                const isAnswered =
-                                    answers[
-                                        question.id
-                                    ] !== undefined;
-
-
-                                const isCurrent =
-                                    index ===
-                                    currentQuestionIndex;
-
+                    {/* OPTIONS */}
+                    <div className="exit-exam-options">
+
+                        {options.map(
+                            (option, index) => {
+                                const optionId =
+                                    option.id ||
+                                    option.option_id;
+
+                                const letters = [
+                                    "A",
+                                    "B",
+                                    "C",
+                                    "D",
+                                    "E",
+                                    "F"
+                                ];
+
+                                const isSelected =
+                                    Number(
+                                        selectedOption
+                                    ) ===
+                                    Number(
+                                        optionId
+                                    );
 
                                 return (
-
                                     <button
-                                        key={
-                                            question.id
-                                        }
                                         type="button"
-                                        className={`
-                                            question-number
-                                            ${isCurrent ? "current" : ""}
-                                            ${isAnswered ? "answered" : ""}
-                                        `}
+                                        key={
+                                            optionId
+                                        }
+                                        className={`exit-exam-option ${
+                                            isSelected
+                                                ? "selected"
+                                                : ""
+                                        }`}
                                         onClick={() =>
-                                            goToQuestion(
-                                                index
+                                            selectAnswer(
+                                                questionId,
+                                                optionId
                                             )
                                         }
                                     >
+                                        <span className="option-radio">
+                                            {isSelected
+                                                ? "●"
+                                                : "○"}
+                                        </span>
 
-                                        {index + 1}
+                                        <span className="option-letter">
+                                            {
+                                                letters[
+                                                    index
+                                                ]
+                                            }
+                                            .
+                                        </span>
 
+                                        <span className="option-answer">
+                                            {
+                                                option.option_text
+                                            }
+                                        </span>
                                     </button>
-
                                 );
-
                             }
                         )}
 
                     </div>
 
+                </section>
 
-                    {/* ==================================================
-                        LEGEND
-                    ================================================== */}
+                {/* =================================================
+                    PREVIOUS / NEXT
+                   ================================================= */}
+                <div className="exit-exam-actions">
 
-                    <div className="navigation-legend">
+                    <button
+                        type="button"
+                        className="exam-nav-button previous"
+                        disabled={
+                            isFirstQuestion
+                        }
+                        onClick={
+                            goToPreviousQuestion
+                        }
+                    >
+                        <ChevronLeft
+                            size={20}
+                        />
 
-                        <div>
+                        Previous
+                    </button>
 
-                            <span
-                                className="legend-box current-box"
-                            ></span>
+                    {!isLastQuestion ? (
+                        <button
+                            type="button"
+                            className="exam-nav-button next"
+                            onClick={
+                                goToNextQuestion
+                            }
+                        >
+                            Next
 
-                            Current
-
-                        </div>
-
-
-                        <div>
-
-                            <span
-                                className="legend-box answered-box"
-                            ></span>
-
-                            Answered
-
-                        </div>
-
-
-                        <div>
-
-                            <span
-                                className="legend-box unanswered-box"
-                            ></span>
-
-                            Unanswered
-
-                        </div>
-
-                    </div>
-
-                </aside>
-
-            </div>
-
-
-            {/* ==================================================
-                ERROR
-            ================================================== */}
-
-            {error && (
-
-                <div className="submit-error">
-
-                    <AlertTriangle
-                        size={18}
-                    />
-
-                    {error}
-
-                </div>
-
-            )}
-
-
-            {/* ==================================================
-                SUBMIT MODAL
-            ================================================== */}
-
-            {showSubmitModal && (
-
-                <div className="submit-modal-overlay">
-
-                    <div className="submit-modal">
-
-
-                        <div className="modal-icon">
-
-                            <AlertTriangle
-                                size={28}
+                            <ChevronRight
+                                size={20}
                             />
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            className="exam-submit-button"
+                            disabled={
+                                submitting
+                            }
+                            onClick={
+                                submitExam
+                            }
+                        >
+                            <Send size={18} />
 
-                        </div>
-
-
-                        <h2>
-                            Submit Examination?
-                        </h2>
-
-
-                        <p>
-
-                            You have answered{" "}
-
-                            <strong>
-                                {answeredCount}
-                            </strong>
-
-                            {" "}of{" "}
-
-                            <strong>
-                                {questions.length}
-                            </strong>
-
-                            {" "}questions.
-
-                        </p>
-
-
-                        {answeredCount <
-                            questions.length && (
-
-                            <p className="unanswered-warning">
-
-                                You still have unanswered
-                                questions. Are you sure
-                                you want to submit?
-
-                            </p>
-
-                        )}
-
-
-                        <div className="modal-actions">
-
-
-                            <button
-                                type="button"
-                                onClick={
-                                    closeSubmitModal
-                                }
-                                disabled={
-                                    submitting
-                                }
-                            >
-
-                                Continue Exam
-
-                            </button>
-
-
-                            <button
-                                type="button"
-                                className="confirm-submit"
-                                onClick={
-                                    submitExam
-                                }
-                                disabled={
-                                    submitting
-                                }
-                            >
-
-                                {submitting
-                                    ? "Submitting..."
-                                    : "Yes, Submit"}
-
-                            </button>
-
-                        </div>
-
-                    </div>
+                            {submitting
+                                ? "Submitting..."
+                                : "Submit Exam"}
+                        </button>
+                    )}
 
                 </div>
 
-            )}
+            </main>
+
+            {/* =================================================
+                QUESTION NAVIGATION
+               ================================================= */}
+            <section className="exit-exam-navigation">
+
+                <div className="navigation-title">
+                    Question Navigation
+                </div>
+
+                <div className="question-number-list">
+
+                    {questions.map(
+                        (question, index) => {
+                            const answered =
+                                answers[
+                                    question.id
+                                ] !==
+                                undefined;
+
+                            const current =
+                                index ===
+                                currentQuestionIndex;
+
+                            return (
+                                <button
+                                    type="button"
+                                    key={
+                                        question.id
+                                    }
+                                    className={`question-number ${
+                                        current
+                                            ? "current"
+                                            : ""
+                                    } ${
+                                        answered
+                                            ? "answered"
+                                            : ""
+                                    }`}
+                                    onClick={() =>
+                                        goToQuestion(
+                                            index
+                                        )
+                                    }
+                                >
+                                    {index + 1}
+                                </button>
+                            );
+                        }
+                    )}
+
+                </div>
+
+            </section>
 
         </div>
-
     );
-
-}
-
+};
 
 export default TakeExam;

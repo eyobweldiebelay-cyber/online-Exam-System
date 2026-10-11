@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, LockKeyhole, LogOut } from "lucide-react";
 
 import "../css/navbar.css";
+import imagelog from '../image/logo.jpg'
 
 function StudentNavbar() {
 
@@ -45,7 +46,7 @@ function StudentNavbar() {
             <div className="student-navbar-left">
 
                 <img
-                    src="/images/college-logo.png"
+                    src={imagelog}
                     alt="College Logo"
                     className="college-logo"
                 />

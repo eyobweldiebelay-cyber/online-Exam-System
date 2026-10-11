@@ -53,21 +53,7 @@ function Result() {
         <div className="result-page">
 
             {/* NAVBAR */}
-            <header className="result-header">
-
-                <div className="result-logo">
-
-                    <span>
-                        College Examination System
-                    </span>
-
-                </div>
-
-                <h1>
-                    EXAM RESULT
-                </h1>
-
-            </header>
+           
 
 
             {/* RESULT CONTENT */}

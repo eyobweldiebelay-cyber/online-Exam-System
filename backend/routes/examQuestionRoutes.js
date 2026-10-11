@@ -1,5 +1,3 @@
-
-
 const express = require("express");
 
 const {
@@ -7,10 +5,25 @@ const {
     getExamQuestions
 } = require("../controller/examQuestionController");
 
+const authenticate = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
+
 const router = express.Router();
 
-router.post("/:examId/questions", addQuestionsToExam);
+// Admin: assign questions to an exam
+router.post(
+    "/:examId/questions",
+    authenticate,
+    roleMiddleware("admin"),
+    addQuestionsToExam
+);
 
-router.get("/:examId/questions", getExamQuestions);
+// Admin: view questions assigned to an exam
+router.get(
+    "/:examId/questions",
+    authenticate,
+    roleMiddleware("admin"),
+    getExamQuestions
+);
 
 module.exports = router;

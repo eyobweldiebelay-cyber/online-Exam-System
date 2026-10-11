@@ -1,5 +1,9 @@
+
 const db = require("../config/db");
 
+// ===============================
+// CREATE EXAM
+// ===============================
 const createExam = async (examData) => {
     const {
         title,
@@ -26,7 +30,7 @@ const createExam = async (examData) => {
             end_at,
             created_by
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             title,
             department_id,
@@ -54,16 +58,19 @@ const createExam = async (examData) => {
         created_by
     };
 };
+
+// ===============================
+// GET ALL EXAMS
+// ===============================
 const getAllExams = async () => {
     const [rows] = await db.execute(`
         SELECT
             e.id,
             e.title,
             e.department_id,
-        
+            p.name AS program_name,
             d.name AS department_name,
             e.academic_year,
-
             e.duration_minutes,
             e.total_questions,
             e.pass_mark,
@@ -75,11 +82,17 @@ const getAllExams = async () => {
         FROM exams e
         LEFT JOIN departments d
             ON e.department_id = d.id
+        LEFT JOIN programs p
+            ON d.program_id = p.id
         ORDER BY e.created_at DESC
     `);
 
     return rows;
 };
+
+// ===============================
+// GET EXAM BY ID
+// ===============================
 const getExamById = async (id) => {
     const [rows] = await db.execute(
         `
@@ -87,6 +100,7 @@ const getExamById = async (id) => {
             e.id,
             e.title,
             e.department_id,
+            p.name AS program_name,
             d.name AS department_name,
             e.academic_year,
             e.duration_minutes,
@@ -100,6 +114,8 @@ const getExamById = async (id) => {
         FROM exams e
         LEFT JOIN departments d
             ON e.department_id = d.id
+        LEFT JOIN programs p
+            ON d.program_id = p.id
         WHERE e.id = ?
         `,
         [id]
@@ -107,6 +123,10 @@ const getExamById = async (id) => {
 
     return rows[0];
 };
+
+// ===============================
+// UPDATE EXAM
+// ===============================
 const updateExam = async (id, examData) => {
     const {
         title,
@@ -148,7 +168,31 @@ const updateExam = async (id, examData) => {
 
     return result.affectedRows;
 };
+
+// ===============================
+// DELETE EXAM
+// ===============================
 const deleteExam = async (id) => {
+    // Check whether students have attempted this exam
+    const [attempts] = await db.execute(
+        `
+        SELECT id
+        FROM exam_attempts
+        WHERE exam_id = ?
+        LIMIT 1
+        `,
+        [id]
+    );
+
+    if (attempts.length > 0) {
+        const error = new Error(
+            "Cannot delete an exam that already has student attempts"
+        );
+
+        error.statusCode = 400;
+        throw error;
+    }
+
     const [result] = await db.execute(
         "DELETE FROM exams WHERE id = ?",
         [id]
@@ -156,6 +200,10 @@ const deleteExam = async (id) => {
 
     return result.affectedRows;
 };
+
+// ===============================
+// PUBLISH EXAM
+// ===============================
 const publishExam = async (id) => {
     // Get exam
     const [exams] = await db.execute(
@@ -189,6 +237,7 @@ const publishExam = async (id) => {
         const error = new Error(
             "Only draft exams can be published"
         );
+
         error.statusCode = 400;
         throw error;
     }
@@ -198,6 +247,7 @@ const publishExam = async (id) => {
         const error = new Error(
             "Exam duration must be greater than 0"
         );
+
         error.statusCode = 400;
         throw error;
     }
@@ -206,6 +256,7 @@ const publishExam = async (id) => {
         const error = new Error(
             "Total questions must be greater than 0"
         );
+
         error.statusCode = 400;
         throw error;
     }
@@ -214,6 +265,7 @@ const publishExam = async (id) => {
         const error = new Error(
             "Pass mark must be between 0 and 100"
         );
+
         error.statusCode = 400;
         throw error;
     }
@@ -226,6 +278,7 @@ const publishExam = async (id) => {
         const error = new Error(
             "Exam start time must be before end time"
         );
+
         error.statusCode = 400;
         throw error;
     }
@@ -249,6 +302,7 @@ const publishExam = async (id) => {
         const error = new Error(
             "Cannot publish an exam without questions"
         );
+
         error.statusCode = 400;
         throw error;
     }
@@ -258,16 +312,18 @@ const publishExam = async (id) => {
         const error = new Error(
             `Exam requires ${exam.total_questions} questions, but ${questions.length} are assigned`
         );
+
         error.statusCode = 400;
         throw error;
     }
 
     // Every question must belong to the exam department
     for (const question of questions) {
-        if (question.department_id !== exam.department_id) {
+        if (Number(question.department_id) !== Number(exam.department_id)) {
             const error = new Error(
                 `Question ${question.question_id} does not belong to the exam department`
             );
+
             error.statusCode = 400;
             throw error;
         }
@@ -288,6 +344,10 @@ const publishExam = async (id) => {
         status: "published"
     };
 };
+
+// ===============================
+// GET AVAILABLE EXAMS FOR STUDENT
+// ===============================
 const getAvailableExamsForStudent = async (userId) => {
     const [student] = await db.execute(
         `
@@ -345,6 +405,10 @@ const getAvailableExamsForStudent = async (userId) => {
 
     return exams;
 };
+
+// ===============================
+// EXPORT FUNCTIONS
+// ===============================
 module.exports = {
     createExam,
     getAllExams,
@@ -354,3 +418,4 @@ module.exports = {
     publishExam,
     getAvailableExamsForStudent
 };
+

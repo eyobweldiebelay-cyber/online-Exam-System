@@ -1,3 +1,4 @@
+
 const db = require("../config/db");
 
 // ======================================================
@@ -5,7 +6,10 @@ const db = require("../config/db");
 // ======================================================
 const startExam = async (userId, examId) => {
 
-    // 1. Find student
+    // ======================================================
+    // 1. FIND STUDENT
+    // ======================================================
+
     const [students] = await db.execute(
         `
         SELECT
@@ -34,7 +38,10 @@ const startExam = async (userId, examId) => {
         throw error;
     }
 
-    // 2. Find exam
+    // ======================================================
+    // 2. FIND EXAM
+    // ======================================================
+
     const [exams] = await db.execute(
         `
         SELECT
@@ -62,87 +69,266 @@ const startExam = async (userId, examId) => {
 
     const exam = exams[0];
 
-    // 3. Check exam status
+    // ======================================================
+    // 3. CHECK EXAM STATUS
+    // ======================================================
+
     if (exam.status !== "published") {
         const error = new Error("Exam is not published");
         error.statusCode = 400;
         throw error;
     }
 
-    // 4. Check department
-    if (student.department_id !== exam.department_id) {
+    // ======================================================
+    // 4. CHECK DEPARTMENT
+    // ======================================================
+
+    if (Number(student.department_id) !== Number(exam.department_id)) {
         const error = new Error(
             "You are not eligible for this exam"
         );
+
         error.statusCode = 403;
         throw error;
     }
 
-    // 5. Check academic year
-    if (student.academic_year !== exam.academic_year) {
+    // ======================================================
+    // 5. CHECK ACADEMIC YEAR
+    // ======================================================
+
+    if (String(student.academic_year) !== String(exam.academic_year)) {
         const error = new Error(
             "You are not eligible for this exam"
         );
+
         error.statusCode = 403;
         throw error;
     }
 
-    // 6. Check exam time
+    // ======================================================
+    // 6. CHECK EXAM TIME
+    // ======================================================
+
     const [databaseTime] = await db.execute(
-        "SELECT NOW() AS exam_current_time"
+        `SELECT NOW() AS exam_current_time`
     );
 
     const currentTime = databaseTime[0].exam_current_time;
 
     if (currentTime < exam.start_at) {
-        const error = new Error(
-            "Exam has not started yet"
-        );
+        const error = new Error("Exam has not started yet");
         error.statusCode = 400;
         throw error;
     }
 
     if (currentTime > exam.end_at) {
-        const error = new Error(
-            "Exam has ended"
-        );
+        const error = new Error("Exam has ended");
         error.statusCode = 400;
         throw error;
     }
 
-    // 7. Check existing attempt
-    const [existingAttempt] = await db.execute(
+    // ======================================================
+    // 7. CHECK EXISTING ATTEMPT
+    // ======================================================
+
+    const [existingAttempts] = await db.execute(
         `
         SELECT
             id,
+            started_at,
+            submitted_at,
             status
         FROM exam_attempts
         WHERE student_id = ?
           AND exam_id = ?
+        ORDER BY id DESC
+        LIMIT 1
         `,
         [student.id, examId]
     );
 
-    if (existingAttempt.length > 0) {
+    // ======================================================
+    // 8. RESUME IN-PROGRESS ATTEMPT
+    // ======================================================
+
+    if (
+        existingAttempts.length > 0 &&
+        existingAttempts[0].status === "in_progress"
+    ) {
+
+        const existingAttempt = existingAttempts[0];
+
+        // Get this attempt's SAVED randomized question order.
+        let [questions] = await db.execute(
+            `
+            SELECT
+                q.id,
+                q.question_text,
+                aq.marks,
+                aq.question_order
+            FROM attempt_questions aq
+            JOIN questions q
+                ON aq.question_id = q.id
+            WHERE aq.attempt_id = ?
+            ORDER BY aq.question_order ASC
+            `,
+            [existingAttempt.id]
+        );
+
+        // Support attempts created before randomization was saved.
+        if (questions.length === 0) {
+
+            const [availableQuestions] = await db.execute(
+                `
+                SELECT
+                    q.id,
+                    q.question_text,
+                    COALESCE(eq.marks, q.marks, 1.00) AS marks
+                FROM exam_questions eq
+                JOIN questions q
+                    ON eq.question_id = q.id
+                WHERE eq.exam_id = ?
+                  AND q.status = 'active'
+                ORDER BY RAND()
+                `,
+                [examId]
+            );
+
+            if (availableQuestions.length === 0) {
+                const error = new Error(
+                    "No questions are assigned to this exam"
+                );
+                error.statusCode = 400;
+                throw error;
+            }
+
+            if (availableQuestions.length !== Number(exam.total_questions)) {
+                const error = new Error(
+                    "Exam question count does not match"
+                );
+                error.statusCode = 400;
+                throw error;
+            }
+
+            for (let i = 0; i < availableQuestions.length; i++) {
+                const question = availableQuestions[i];
+
+                await db.execute(
+                    `
+                    INSERT INTO attempt_questions
+                    (attempt_id, question_id, question_order, marks)
+                    VALUES (?, ?, ?, ?)
+                    `,
+                    [
+                        existingAttempt.id,
+                        question.id,
+                        i + 1,
+                        question.marks
+                    ]
+                );
+            }
+
+            [questions] = await db.execute(
+                `
+                SELECT
+                    q.id,
+                    q.question_text,
+                    aq.marks,
+                    aq.question_order
+                FROM attempt_questions aq
+                JOIN questions q
+                    ON aq.question_id = q.id
+                WHERE aq.attempt_id = ?
+                ORDER BY aq.question_order ASC
+                `,
+                [existingAttempt.id]
+            );
+        }
+
+        if (questions.length !== Number(exam.total_questions)) {
+            const error = new Error(
+                "Saved question count does not match this exam"
+            );
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Keep answer options in a stable order on resume.
+        for (const question of questions) {
+            const [options] = await db.execute(
+                `
+                SELECT id, option_text
+                FROM question_options
+                WHERE question_id = ?
+                ORDER BY id ASC
+                `,
+                [question.id]
+            );
+
+            question.options = options;
+        }
+
+        return {
+            attempt_id: existingAttempt.id,
+
+            exam: {
+                id: exam.id,
+                title: exam.title,
+                duration_minutes: exam.duration_minutes,
+                total_questions: exam.total_questions,
+                pass_mark: exam.pass_mark,
+                started_at: existingAttempt.started_at
+            },
+
+            questions
+        };
+    }
+
+    // ======================================================
+    // 9. BLOCK SUBMITTED ATTEMPT
+    // ======================================================
+
+    if (
+        existingAttempts.length > 0 &&
+        existingAttempts[0].status === "submitted"
+    ) {
         const error = new Error(
-            "You have already attempted this exam"
+            "You have already submitted this exam"
         );
         error.statusCode = 409;
         throw error;
     }
 
-    // 8. Get exam questions
-    // ORDER BY RAND() gives every student a different question order
+    // ======================================================
+    // 10. BLOCK EXPIRED ATTEMPT
+    // ======================================================
+
+    if (
+        existingAttempts.length > 0 &&
+        existingAttempts[0].status === "expired"
+    ) {
+        const error = new Error(
+            "Your attempt for this exam has expired"
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+
+    // ======================================================
+    // 11. GET RANDOMIZED EXAM QUESTIONS
+    // ======================================================
+
     const [questions] = await db.execute(
         `
         SELECT
             q.id,
             q.question_text,
-            q.marks
+            COALESCE(eq.marks, q.marks, 1.00) AS marks
         FROM exam_questions eq
         JOIN questions q
             ON eq.question_id = q.id
         WHERE eq.exam_id = ?
+          AND q.status = 'active'
         ORDER BY RAND()
         `,
         [examId]
@@ -156,7 +342,7 @@ const startExam = async (userId, examId) => {
         throw error;
     }
 
-    if (questions.length !== exam.total_questions) {
+    if (questions.length !== Number(exam.total_questions)) {
         const error = new Error(
             "Exam question count does not match"
         );
@@ -164,7 +350,10 @@ const startExam = async (userId, examId) => {
         throw error;
     }
 
-    // 9. Create exam attempt
+    // ======================================================
+    // 12. CREATE NEW ATTEMPT
+    // ======================================================
+
     const [attemptResult] = await db.execute(
         `
         INSERT INTO exam_attempts
@@ -181,9 +370,38 @@ const startExam = async (userId, examId) => {
 
     const attemptId = attemptResult.insertId;
 
-    // 10. Get options for every question
-    for (const question of questions) {
+    // ======================================================
+    // 12A. SAVE RANDOMIZED ORDER FOR THIS ATTEMPT
+    // ======================================================
 
+    for (let i = 0; i < questions.length; i++) {
+        await db.execute(
+            `
+            INSERT INTO attempt_questions
+            (
+                attempt_id,
+                question_id,
+                question_order,
+                marks
+            )
+            VALUES (?, ?, ?, ?)
+            `,
+            [
+                attemptId,
+                questions[i].id,
+                i + 1,
+                questions[i].marks
+            ]
+        );
+
+        questions[i].question_order = i + 1;
+    }
+
+    // ======================================================
+    // 13. GET OPTIONS
+    // ======================================================
+
+    for (const question of questions) {
         const [options] = await db.execute(
             `
             SELECT
@@ -198,6 +416,10 @@ const startExam = async (userId, examId) => {
 
         question.options = options;
     }
+
+    // ======================================================
+    // 14. RETURN EXAM
+    // ======================================================
 
     return {
         attempt_id: attemptId,
@@ -247,9 +469,7 @@ const submitExam = async (userId, attemptId, answers) => {
     );
 
     if (students.length === 0) {
-        const error = new Error(
-            "Student profile not found"
-        );
+        const error = new Error("Student profile not found");
         error.statusCode = 404;
         throw error;
     }
@@ -257,9 +477,7 @@ const submitExam = async (userId, attemptId, answers) => {
     const student = students[0];
 
     if (student.status !== "active") {
-        const error = new Error(
-            "Student account is inactive"
-        );
+        const error = new Error("Student account is inactive");
         error.statusCode = 403;
         throw error;
     }
@@ -285,9 +503,7 @@ const submitExam = async (userId, attemptId, answers) => {
     );
 
     if (attempts.length === 0) {
-        const error = new Error(
-            "Attempt not found"
-        );
+        const error = new Error("Attempt not found");
         error.statusCode = 404;
         throw error;
     }
@@ -295,7 +511,7 @@ const submitExam = async (userId, attemptId, answers) => {
     const attempt = attempts[0];
 
     // 3. Make sure attempt belongs to student
-    if (attempt.student_id !== student.id) {
+    if (Number(attempt.student_id) !== Number(student.id)) {
         const error = new Error(
             "You are not allowed to submit this attempt"
         );
@@ -317,8 +533,7 @@ const submitExam = async (userId, attemptId, answers) => {
         "SELECT NOW() AS exam_current_time"
     );
 
-    const currentTime =
-        databaseTime[0].exam_current_time;
+    const currentTime = databaseTime[0].exam_current_time;
 
     // 6. Calculate exam end time
     const [timeCheck] = await db.execute(
@@ -337,26 +552,24 @@ const submitExam = async (userId, attemptId, answers) => {
         [attemptId]
     );
 
-    const calculatedEndTime =
-        timeCheck[0].calculated_end_time;
+    const calculatedEndTime = timeCheck[0].calculated_end_time;
 
-    // 7. Get exam questions
+    // 7. Get only the questions saved for THIS attempt
     const [examQuestions] = await db.execute(
         `
         SELECT
-            eq.question_id,
-            q.marks
-        FROM exam_questions eq
-        JOIN questions q
-            ON eq.question_id = q.id
-        WHERE eq.exam_id = ?
+            aq.question_id,
+            aq.marks
+        FROM attempt_questions aq
+        WHERE aq.attempt_id = ?
+        ORDER BY aq.question_order ASC
         `,
-        [attempt.exam_id]
+        [attemptId]
     );
 
     if (examQuestions.length === 0) {
         const error = new Error(
-            "No questions found for this exam"
+            "No questions found for this attempt"
         );
         error.statusCode = 400;
         throw error;
@@ -365,6 +578,7 @@ const submitExam = async (userId, attemptId, answers) => {
     // ==================================================
     // Remove old answer rows for this attempt
     // ==================================================
+
     await db.execute(
         `
         DELETE FROM student_answers
@@ -380,7 +594,6 @@ const submitExam = async (userId, attemptId, answers) => {
 
     for (const examQuestion of examQuestions) {
 
-        // Find student's answer for this question
         const answer = answers.find(
             item =>
                 Number(item.question_id) ===
@@ -391,43 +604,31 @@ const submitExam = async (userId, attemptId, answers) => {
         let isCorrect = false;
         let marksObtained = 0;
 
-        // ==================================================
-        // Accept both formats
-        // selected_option_id OR option_id
-        // ==================================================
+        // Accept both formats: selected_option_id or option_id
         if (answer) {
-
             if (
                 answer.selected_option_id !== undefined &&
                 answer.selected_option_id !== null &&
                 answer.selected_option_id !== ""
             ) {
-                selectedOptionId =
-                    Number(answer.selected_option_id);
-
+                selectedOptionId = Number(answer.selected_option_id);
             } else if (
                 answer.option_id !== undefined &&
                 answer.option_id !== null &&
                 answer.option_id !== ""
             ) {
-                selectedOptionId =
-                    Number(answer.option_id);
+                selectedOptionId = Number(answer.option_id);
             }
         }
 
-        // ==================================================
-        // Student selected an option
-        // ==================================================
+        // Check selected option
         if (
             selectedOptionId !== null &&
             !Number.isNaN(selectedOptionId)
         ) {
-
-            // Check that option belongs to this question
             const [options] = await db.execute(
                 `
-                SELECT
-                    is_correct
+                SELECT is_correct
                 FROM question_options
                 WHERE id = ?
                   AND question_id = ?
@@ -439,41 +640,24 @@ const submitExam = async (userId, attemptId, answers) => {
             );
 
             if (options.length > 0) {
-
-                isCorrect =
-                    Boolean(options[0].is_correct);
+                isCorrect = Boolean(options[0].is_correct);
 
                 if (isCorrect) {
-
                     correctAnswers++;
-
-                    marksObtained =
-                        Number(examQuestion.marks);
-
+                    marksObtained = Number(examQuestion.marks);
                     obtainedMarks += marksObtained;
-
                 } else {
-
                     wrongAnswers++;
                 }
-
             } else {
-
-                // Invalid option for this question
                 wrongAnswers++;
-
                 selectedOptionId = null;
             }
-
         } else {
-
-            // Student did not answer this question
             wrongAnswers++;
         }
 
-        // ==================================================
         // Save student's answer
-        // ==================================================
         await db.execute(
             `
             INSERT INTO student_answers
@@ -568,31 +752,17 @@ const submitExam = async (userId, attemptId, answers) => {
     // 15. Return result
     return {
         attempt_id: attemptId,
-
         student_name: student.username,
-
         student_id: student.student_id,
-
         exam_title: attempt.exam_title,
-
         total_questions: examQuestions.length,
-
         correct_answers: correctAnswers,
-
         wrong_answers: wrongAnswers,
-
         total_marks: totalMarks,
-
         obtained_marks: obtainedMarks,
-
-        percentage: Number(
-            percentage.toFixed(2)
-        ),
-
+        percentage: Number(percentage.toFixed(2)),
         result_status: resultStatus,
-
         attempt_status: finalStatus,
-
         completed_at: currentTime
     };
 };

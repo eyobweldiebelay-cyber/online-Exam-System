@@ -1,5 +1,9 @@
 const examService = require("../services/examService");
 
+
+// ===============================
+// CREATE EXAM
+// ===============================
 const createExam = async (req, res) => {
     try {
         const {
@@ -52,12 +56,11 @@ const createExam = async (req, res) => {
             department_id,
             academic_year,
             duration_minutes,
-            duration_minutes,
             total_questions,
             pass_mark,
             start_at,
             end_at,
-            created_by: 1
+            created_by: req.user.id
         });
 
         return res.status(201).json({
@@ -68,16 +71,21 @@ const createExam = async (req, res) => {
     } catch (error) {
         console.error("Create exam error:", error);
 
-        return res.status(500).json({
-            message: "Failed to create exam"
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to create exam"
         });
     }
 };
+
+
+// ===============================
+// GET ALL EXAMS
+// ===============================
 const getAllExams = async (req, res) => {
     try {
         const exams = await examService.getAllExams();
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Exams retrieved successfully",
             exams
         });
@@ -85,11 +93,16 @@ const getAllExams = async (req, res) => {
     } catch (error) {
         console.error("Get exams error:", error);
 
-        res.status(500).json({
-            message: "Failed to retrieve exams"
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to retrieve exams"
         });
     }
 };
+
+
+// ===============================
+// GET EXAM BY ID
+// ===============================
 const getExamById = async (req, res) => {
     try {
         const exam = await examService.getExamById(req.params.id);
@@ -100,7 +113,7 @@ const getExamById = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Exam retrieved successfully",
             exam
         });
@@ -108,11 +121,16 @@ const getExamById = async (req, res) => {
     } catch (error) {
         console.error("Get exam error:", error);
 
-        res.status(500).json({
-            message: "Failed to retrieve exam"
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to retrieve exam"
         });
     }
 };
+
+
+// ===============================
+// UPDATE EXAM
+// ===============================
 const updateExam = async (req, res) => {
     try {
         const examId = req.params.id;
@@ -128,18 +146,23 @@ const updateExam = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Exam updated successfully"
         });
 
     } catch (error) {
         console.error("Update exam error:", error);
 
-        res.status(500).json({
-            message: "Failed to update exam"
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to update exam"
         });
     }
 };
+
+
+// ===============================
+// DELETE EXAM
+// ===============================
 const deleteExam = async (req, res) => {
     try {
         const examId = req.params.id;
@@ -152,25 +175,30 @@ const deleteExam = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Exam deleted successfully"
         });
 
     } catch (error) {
         console.error("Delete exam error:", error);
 
-        res.status(500).json({
-            message: "Failed to delete exam"
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to delete exam"
         });
     }
 };
+
+
+// ===============================
+// PUBLISH EXAM
+// ===============================
 const publishExam = async (req, res) => {
     try {
         const examId = req.params.id;
 
         const result = await examService.publishExam(examId);
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Exam published successfully",
             exam: result
         });
@@ -178,11 +206,16 @@ const publishExam = async (req, res) => {
     } catch (error) {
         console.error("Publish exam error:", error);
 
-        res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || 500).json({
             message: error.message || "Failed to publish exam"
         });
     }
 };
+
+
+// ===============================
+// GET AVAILABLE EXAMS FOR STUDENT
+// ===============================
 const getAvailableExamsForStudent = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -191,7 +224,7 @@ const getAvailableExamsForStudent = async (req, res) => {
             userId
         );
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Available exams retrieved successfully",
             exams
         });
@@ -199,11 +232,13 @@ const getAvailableExamsForStudent = async (req, res) => {
     } catch (error) {
         console.error("Get available exams error:", error);
 
-        res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || 500).json({
             message: error.message || "Failed to retrieve available exams"
         });
     }
 };
+
+
 module.exports = {
     createExam,
     getAllExams,
@@ -213,4 +248,3 @@ module.exports = {
     publishExam,
     getAvailableExamsForStudent
 };
-    

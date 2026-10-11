@@ -1,0 +1,140 @@
+
+.admin-dashboard {
+    padding: 28px;
+    min-height: 100%;
+    background: #f5f7fb;
+}
+
+.admin-dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+}
+
+.admin-dashboard-header h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    color: #172033;
+}
+
+.admin-dashboard-header p {
+    margin: 0;
+    color: #687386;
+    font-size: 14px;
+}
+
+.admin-dashboard-error {
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 14px;
+}
+
+.admin-dashboard-loading {
+    padding: 60px 20px;
+    text-align: center;
+    color: #687386;
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.admin-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px;
+    background: #ffffff;
+    border: 1px solid #e5e9f0;
+    border-radius: 12px;
+    min-height: 105px;
+    box-shadow: 0 2px 8px rgba(20, 30, 50, 0.04);
+}
+
+.admin-stat-icon {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+
+.admin-stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.admin-stat-content span {
+    color: #687386;
+    font-size: 13px;
+}
+
+.admin-stat-content strong {
+    color: #172033;
+    font-size: 27px;
+    line-height: 1;
+}
+
+.admin-card-blue .admin-stat-icon {
+    background: #e8f0ff;
+    color: #2563eb;
+}
+
+.admin-card-green .admin-stat-icon {
+    background: #e8f8ef;
+    color: #16a34a;
+}
+
+.admin-card-purple .admin-stat-icon {
+    background: #f1eaff;
+    color: #7c3aed;
+}
+
+.admin-card-orange .admin-stat-icon {
+    background: #fff2df;
+    color: #ea580c;
+}
+
+.admin-card-red .admin-stat-icon {
+    background: #ffe9e9;
+    color: #dc2626;
+}
+
+.admin-card-teal .admin-stat-icon {
+    background: #e5f8f7;
+    color: #0f766e;
+}
+
+@media (max-width: 900px) {
+
+    .admin-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .admin-dashboard {
+        padding: 18px;
+    }
+
+    .admin-dashboard-header h1 {
+        font-size: 23px;
+    }
+
+    .admin-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+}

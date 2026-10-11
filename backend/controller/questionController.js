@@ -1,5 +1,46 @@
 const questionService = require("../services/questionService");
 
+
+// Validate question data
+const validateQuestionData = (req, res) => {
+
+    const {
+        department_id,
+        question_text,
+        options
+    } = req.body;
+
+    if (!department_id || !question_text || !options) {
+        return "department_id, question_text and options are required";
+    }
+
+    if (!Array.isArray(options)) {
+        return "options must be an array";
+    }
+
+    if (options.length < 2) {
+        return "A question must have at least 2 options";
+    }
+
+    for (const option of options) {
+
+        if (!option.option_text) {
+            return "Each option must have option_text";
+        }
+    }
+
+    const correctOptions = options.filter(
+        option => option.is_correct === true
+    );
+
+    if (correctOptions.length !== 1) {
+        return "A question must have exactly one correct answer";
+    }
+
+    return null;
+};
+
+
 // Create question
 const createQuestion = async (req, res) => {
 
@@ -12,45 +53,11 @@ const createQuestion = async (req, res) => {
             options
         } = req.body;
 
-        // Required fields
-        if (!department_id || !question_text || !options) {
+        const validationError = validateQuestionData(req, res);
+
+        if (validationError) {
             return res.status(400).json({
-                message: "department_id, question_text and options are required"
-            });
-        }
-
-        // Options must be array
-        if (!Array.isArray(options)) {
-            return res.status(400).json({
-                message: "options must be an array"
-            });
-        }
-
-        // Multiple choice needs at least 2 options
-        if (options.length < 2) {
-            return res.status(400).json({
-                message: "A question must have at least 2 options"
-            });
-        }
-
-        // Validate option text
-        for (const option of options) {
-
-            if (!option.option_text) {
-                return res.status(400).json({
-                    message: "Each option must have option_text"
-                });
-            }
-        }
-
-        // Exactly one correct answer
-        const correctOptions = options.filter(
-            option => option.is_correct === true
-        );
-
-        if (correctOptions.length !== 1) {
-            return res.status(400).json({
-                message: "A question must have exactly one correct answer"
+                message: validationError
             });
         }
 
@@ -123,8 +130,112 @@ const getQuestionById = async (req, res) => {
 };
 
 
+// Update question
+const updateQuestion = async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        const {
+            department_id,
+            question_text,
+            marks,
+            options
+        } = req.body;
+
+        const validationError = validateQuestionData(req, res);
+
+        if (validationError) {
+            return res.status(400).json({
+                message: validationError
+            });
+        }
+
+        await questionService.updateQuestion(
+            id,
+            {
+                department_id,
+                question_text,
+                marks,
+                options
+            }
+        );
+
+        res.status(200).json({
+            message: "Question updated successfully"
+        });
+
+    } catch (error) {
+
+        console.error("Update question error:", error);
+
+        res.status(error.statusCode || 500).json({
+            message: error.statusCode
+                ? error.message
+                : "Server error"
+        });
+    }
+};
+
+
+// Deactivate question
+const deactivateQuestion = async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        await questionService.deactivateQuestion(id);
+
+        res.status(200).json({
+            message: "Question deactivated successfully"
+        });
+
+    } catch (error) {
+
+        console.error("Deactivate question error:", error);
+
+        res.status(error.statusCode || 500).json({
+            message: error.statusCode
+                ? error.message
+                : "Server error"
+        });
+    }
+};
+
+
+// Activate question
+const activateQuestion = async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        await questionService.activateQuestion(id);
+
+        res.status(200).json({
+            message: "Question activated successfully"
+        });
+
+    } catch (error) {
+
+        console.error("Activate question error:", error);
+
+        res.status(error.statusCode || 500).json({
+            message: error.statusCode
+                ? error.message
+                : "Server error"
+        });
+    }
+};
+
+
 module.exports = {
     createQuestion,
     getQuestions,
-    getQuestionById
+    getQuestionById,
+    updateQuestion,
+    deactivateQuestion,
+    activateQuestion
 };

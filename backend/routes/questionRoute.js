@@ -3,15 +3,55 @@ const express = require("express");
 const {
     createQuestion,
     getQuestions,
-    getQuestionById
+    getQuestionById,
+    updateQuestion,
+    deactivateQuestion,
+    activateQuestion
 } = require("../controller/questionController");
 
 const router = express.Router();
 
-router.post("/", createQuestion);
 
-router.get("/", getQuestions);
+// Create question
+router.post(
+    "/",
+    createQuestion
+);
 
-router.get("/:id", getQuestionById);
+
+// Get all questions
+router.get(
+    "/",
+    getQuestions
+);
+
+
+// Get question by ID
+router.get(
+    "/:id",
+    getQuestionById
+);
+
+
+// Update question
+router.put(
+    "/:id",
+    updateQuestion
+);
+
+
+// Deactivate question
+router.patch(
+    "/:id/deactivate",
+    deactivateQuestion
+);
+
+
+// Activate question
+router.patch(
+    "/:id/activate",
+    activateQuestion
+);
+
 
 module.exports = router;

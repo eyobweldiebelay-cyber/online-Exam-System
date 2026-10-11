@@ -15,5 +15,9 @@ router.get(
     authenticate,
     resultController.getMyResultByAttempt
 );
-
+router.get(
+    "/admin",
+    authenticate,
+    resultController.getAllResults
+);
 module.exports = router;
