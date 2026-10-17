@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 import {
     createQuestion,
@@ -16,8 +17,15 @@ import "../../css/admin/question.css";
 const QuestionForm = () => {
     const navigate = useNavigate();
     const { questionId } = useParams();
+    const { user } = useAuth();
 
     const isEditMode = Boolean(questionId);
+    const role = String(user?.role || "").toLowerCase();
+    const isTeacher = role === "teacher";
+
+    const assignedDepartmentId = user?.department_id
+        ? Number(user.department_id)
+        : null;
 
     const [programs, setPrograms] = useState([]);
     const [departments, setDepartments] = useState([]);
@@ -30,136 +38,204 @@ const QuestionForm = () => {
     });
 
     const [options, setOptions] = useState([
-        {
-            option_text: "",
-            is_correct: true
-        },
-        {
-            option_text: "",
-            is_correct: false
-        },
-        {
-            option_text: "",
-            is_correct: false
-        },
-        {
-            option_text: "",
-            is_correct: false
-        }
+        { option_text: "", is_correct: true },
+        { option_text: "", is_correct: false },
+        { option_text: "", is_correct: false },
+        { option_text: "", is_correct: false }
     ]);
 
     const [loading, setLoading] = useState(false);
-    const [pageLoading, setPageLoading] = useState(isEditMode);
+    const [pageLoading, setPageLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // Load programs
-    const loadPrograms = async () => {
-        try {
-            const data = await getAllPrograms();
+    // Teachers may only select their assigned department.
+    const availableDepartments = departments.filter((department) => {
+        const isActive = department.status !== "inactive";
 
-            setPrograms(
-                Array.isArray(data) ? data : []
-            );
-        } catch (error) {
-            console.error("Get programs error:", error);
-
-            setError(
-                error.response?.data?.message ||
-                "Failed to load programs"
+        if (isTeacher) {
+            return (
+                isActive &&
+                assignedDepartmentId !== null &&
+                Number(department.id) === assignedDepartmentId
             );
         }
-    };
 
-    // Load departments
-    const loadDepartments = async () => {
-        try {
-            const data = await getAllDepartments();
+        return isActive;
+    });
 
-            const departmentList = Array.isArray(data)
-                ? data
-                : data.departments || [];
+    const availablePrograms = programs.filter((program) => {
+        const isActive = program.status !== "inactive";
+
+        if (!isTeacher) {
+            return isActive;
+        }
+
+        const teacherDepartment = departments.find(
+            (department) =>
+                Number(department.id) === assignedDepartmentId
+        );
+
+        return (
+            isActive &&
+            teacherDepartment &&
+            Number(program.id) ===
+                Number(teacherDepartment.program_id)
+        );
+    });
+
+    const getQuestionsPage = () =>
+        isTeacher ? "/teacher/questions" : "/admin/questions";
+
+    // Load programs and departments.
+    const loadReferenceData = async () => {
+        const [programResult, departmentResult] =
+            await Promise.allSettled([
+                getAllPrograms(),
+                getAllDepartments()
+            ]);
+
+        if (programResult.status === "fulfilled") {
+            const programData = programResult.value;
+            setPrograms(Array.isArray(programData) ? programData : []);
+        } else {
+            throw programResult.reason;
+        }
+
+        if (departmentResult.status === "fulfilled") {
+            const departmentData = departmentResult.value;
+
+            const departmentList = Array.isArray(departmentData)
+                ? departmentData
+                : departmentData?.departments || [];
 
             setDepartments(departmentList);
-
             return departmentList;
-        } catch (error) {
-            console.error("Get departments error:", error);
+        }
 
-            setError(
-                error.response?.data?.message ||
-                "Failed to load departments"
+        throw departmentResult.reason;
+    };
+
+    // Load a question for editing.
+    const loadQuestion = async (departmentList) => {
+        const data = await getQuestionById(questionId);
+
+        if (
+            isTeacher &&
+            (
+                !assignedDepartmentId ||
+                Number(data.department_id) !== assignedDepartmentId
+            )
+        ) {
+            throw new Error(
+                "You cannot edit questions outside your assigned department."
             );
+        }
 
-            return [];
+        const questionDepartment = departmentList.find(
+            (department) =>
+                Number(department.id) === Number(data.department_id)
+        );
+
+        if (!questionDepartment) {
+            throw new Error(
+                "The department for this question could not be found."
+            );
+        }
+
+        setFormData({
+            program_id: String(questionDepartment.program_id),
+            department_id: String(data.department_id),
+            question_text: data.question_text || "",
+            marks: data.marks ?? 1
+        });
+
+        if (Array.isArray(data.options) && data.options.length > 0) {
+            setOptions(
+                data.options.map((option) => ({
+                    option_text: option.option_text || "",
+                    is_correct:
+                        option.is_correct === true ||
+                        Number(option.is_correct) === 1
+                }))
+            );
         }
     };
 
-    // Load question when editing
-    const loadQuestion = async (departmentList = []) => {
-        try {
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadData = async () => {
             setPageLoading(true);
             setError("");
 
-            const data = await getQuestionById(questionId);
+            try {
+                const departmentList = await loadReferenceData();
 
-            const questionDepartment = departmentList.find(
-                (department) =>
-                    Number(department.id) ===
-                    Number(data.department_id)
-            );
+                if (cancelled) return;
 
-            setFormData({
-                program_id: questionDepartment?.program_id
-                    ? String(questionDepartment.program_id)
-                    : "",
-                department_id: String(data.department_id),
-                question_text: data.question_text,
-                marks: data.marks
-            });
+                if (isTeacher) {
+                    if (!assignedDepartmentId) {
+                        throw new Error(
+                            "Your Teacher account is not assigned to a department. Contact the administrator."
+                        );
+                    }
 
-            if (
-                Array.isArray(data.options) &&
-                data.options.length > 0
-            ) {
-                setOptions(
-                    data.options.map((option) => ({
-                        option_text: option.option_text,
-                        is_correct: Boolean(option.is_correct)
-                    }))
-                );
-            }
-        } catch (error) {
-            console.error("Get question error:", error);
+                    const assignedDepartment = departmentList.find(
+                        (department) =>
+                            Number(department.id) === assignedDepartmentId
+                    );
 
-            setError(
-                error.response?.data?.message ||
-                "Failed to load question"
-            );
-        } finally {
-            setPageLoading(false);
-        }
-    };
+                    if (!assignedDepartment) {
+                        throw new Error(
+                            "Your assigned department could not be found. Contact the administrator."
+                        );
+                    }
 
-    // Load required data
-    useEffect(() => {
-        const loadData = async () => {
-            const departmentList = await loadDepartments();
+                    setFormData((previous) => ({
+                        ...previous,
+                        program_id: String(
+                            assignedDepartment.program_id
+                        ),
+                        department_id: String(
+                            assignedDepartment.id
+                        )
+                    }));
+                }
 
-            await loadPrograms();
+                if (isEditMode) {
+                    await loadQuestion(departmentList);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    console.error("Load question form error:", err);
 
-            if (isEditMode) {
-                await loadQuestion(departmentList);
-            } else {
-                setPageLoading(false);
+                    setError(
+                        err.response?.data?.message ||
+                        err.message ||
+                        "Failed to load question form data."
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setPageLoading(false);
+                }
             }
         };
 
         loadData();
-    }, [questionId, isEditMode]);
 
-    // Handle normal inputs and program selection
+        return () => {
+            cancelled = true;
+        };
+    }, [questionId, isEditMode, isTeacher, assignedDepartmentId]);
+
     const handleChange = (event) => {
         const { name, value } = event.target;
+
+        if (isTeacher) {
+            // Teacher program and department are assigned by the system.
+            return;
+        }
 
         if (name === "program_id") {
             setFormData((previous) => ({
@@ -167,7 +243,6 @@ const QuestionForm = () => {
                 program_id: value,
                 department_id: ""
             }));
-
             return;
         }
 
@@ -177,21 +252,16 @@ const QuestionForm = () => {
         }));
     };
 
-    // Handle option text
     const handleOptionChange = (index, value) => {
         setOptions((previous) =>
             previous.map((option, optionIndex) =>
                 optionIndex === index
-                    ? {
-                          ...option,
-                          option_text: value
-                      }
+                    ? { ...option, option_text: value }
                     : option
             )
         );
     };
 
-    // Select correct answer
     const handleCorrectAnswer = (index) => {
         setOptions((previous) =>
             previous.map((option, optionIndex) => ({
@@ -201,14 +271,25 @@ const QuestionForm = () => {
         );
     };
 
-    // Validate form
     const validateForm = () => {
         if (!formData.program_id) {
-            return "Please select a program";
+            return "Please select a program.";
         }
 
         if (!formData.department_id) {
-            return "Please select a department";
+            return "Please select a department.";
+        }
+
+        if (isTeacher) {
+            if (!assignedDepartmentId) {
+                return "Your account has no assigned department.";
+            }
+
+            if (
+                Number(formData.department_id) !== assignedDepartmentId
+            ) {
+                return "You can only manage questions in your assigned department.";
+            }
         }
 
         const selectedDepartment = departments.find(
@@ -222,24 +303,28 @@ const QuestionForm = () => {
             Number(selectedDepartment.program_id) !==
                 Number(formData.program_id)
         ) {
-            return "Please select a department belonging to the selected program";
+            return "Select a department belonging to the selected program.";
         }
 
         if (!formData.question_text.trim()) {
-            return "Please enter the question";
+            return "Please enter the question.";
         }
 
-        if (!formData.marks || Number(formData.marks) <= 0) {
-            return "Marks must be greater than 0";
+        if (
+            formData.marks === "" ||
+            !Number.isFinite(Number(formData.marks)) ||
+            Number(formData.marks) <= 0
+        ) {
+            return "Marks must be greater than zero.";
         }
 
         if (options.length < 2) {
-            return "At least 2 options are required";
+            return "At least two answer options are required.";
         }
 
-        for (let i = 0; i < options.length; i++) {
-            if (!options[i].option_text.trim()) {
-                return `Please enter option ${String.fromCharCode(65 + i)}`;
+        for (let index = 0; index < options.length; index++) {
+            if (!options[index].option_text.trim()) {
+                return `Please enter option ${String.fromCharCode(65 + index)}.`;
             }
         }
 
@@ -248,13 +333,12 @@ const QuestionForm = () => {
         );
 
         if (correctAnswers.length !== 1) {
-            return "Please select exactly one correct answer";
+            return "Please select exactly one correct answer.";
         }
 
         return "";
     };
 
-    // Submit form
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -269,9 +353,7 @@ const QuestionForm = () => {
             setLoading(true);
             setError("");
 
-            // Keep the existing backend payload structure.
-            // The question belongs to a department, which
-            // is already linked to its program in the database.
+            // Preserve the existing backend payload.
             const questionData = {
                 department_id: Number(formData.department_id),
                 question_text: formData.question_text.trim(),
@@ -283,21 +365,18 @@ const QuestionForm = () => {
             };
 
             if (isEditMode) {
-                await updateQuestion(
-                    questionId,
-                    questionData
-                );
+                await updateQuestion(questionId, questionData);
             } else {
                 await createQuestion(questionData);
             }
 
-            navigate("/admin/questions");
-        } catch (error) {
-            console.error("Save question error:", error);
+            navigate(getQuestionsPage());
+        } catch (err) {
+            console.error("Save question error:", err);
 
             setError(
-                error.response?.data?.message ||
-                "Failed to save question"
+                err.response?.data?.message ||
+                "Failed to save the question."
             );
         } finally {
             setLoading(false);
@@ -308,7 +387,7 @@ const QuestionForm = () => {
         return (
             <div className="question-form-page">
                 <div className="question-form-loading">
-                    Loading question...
+                    Loading question form...
                 </div>
             </div>
         );
@@ -319,9 +398,7 @@ const QuestionForm = () => {
             <div className="question-form-header">
                 <div>
                     <h1>
-                        {isEditMode
-                            ? "Update Question"
-                            : "Create Question"}
+                        {isEditMode ? "Update Question" : "Create Question"}
                     </h1>
 
                     <p>
@@ -333,54 +410,37 @@ const QuestionForm = () => {
             </div>
 
             {error && (
-                <div className="question-form-error">
+                <div className="question-form-error" role="alert">
                     {error}
                 </div>
             )}
 
-            <form
-                className="question-form"
-                onSubmit={handleSubmit}
-            >
+            <form className="question-form" onSubmit={handleSubmit}>
                 {/* Program */}
                 <div className="form-group">
-                    <label htmlFor="program_id">
-                        Program well before create question select Program diploma or degree below
-                    </label>
+                    <label htmlFor="program_id">Program</label>
 
                     <select
                         id="program_id"
                         name="program_id"
                         value={formData.program_id}
                         onChange={handleChange}
-                        disabled={loading}
+                        disabled={loading || isTeacher}
                         required
                     >
-                        <option value="">
-                            Select Program
-                        </option>
+                        <option value="">Select Program</option>
 
-                        {programs
-                            .filter(
-                                (program) =>
-                                    program.status !== "inactive"
-                            )
-                            .map((program) => (
-                                <option
-                                    key={program.id}
-                                    value={program.id}
-                                >
-                                    {program.name}
-                                </option>
-                            ))}
+                        {availablePrograms.map((program) => (
+                            <option key={program.id} value={program.id}>
+                                {program.name}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
                 {/* Department */}
                 <div className="form-group">
-                    <label htmlFor="department_id">
-                        Department
-                    </label>
+                    <label htmlFor="department_id">Department</label>
 
                     <select
                         id="department_id"
@@ -388,22 +448,19 @@ const QuestionForm = () => {
                         value={formData.department_id}
                         onChange={handleChange}
                         disabled={
-                            loading || !formData.program_id
+                            loading ||
+                            isTeacher ||
+                            !formData.program_id
                         }
                         required
                     >
-                        <option value="">
-                            {formData.program_id
-                                ? "Select Department"
-                                : "Select Program First"}
-                        </option>
+                        <option value="">Select Department</option>
 
-                        {departments
+                        {availableDepartments
                             .filter(
                                 (department) =>
-                                    department.status !== "inactive" &&
                                     Number(department.program_id) ===
-                                        Number(formData.program_id)
+                                    Number(formData.program_id)
                             )
                             .map((department) => (
                                 <option
@@ -414,13 +471,17 @@ const QuestionForm = () => {
                                 </option>
                             ))}
                     </select>
+
+                    {isTeacher && (
+                        <small>
+                            Your assigned department is selected automatically.
+                        </small>
+                    )}
                 </div>
 
-                {/* Question */}
+                {/* Question text */}
                 <div className="form-group">
-                    <label htmlFor="question_text">
-                        Question
-                    </label>
+                    <label htmlFor="question_text">Question</label>
 
                     <textarea
                         id="question_text"
@@ -428,16 +489,15 @@ const QuestionForm = () => {
                         value={formData.question_text}
                         onChange={handleChange}
                         placeholder="Enter the examination question"
-                        rows="5"
+                        rows={5}
                         disabled={loading}
+                        required
                     />
                 </div>
 
                 {/* Marks */}
                 <div className="form-group">
-                    <label htmlFor="marks">
-                        Marks
-                    </label>
+                    <label htmlFor="marks">Marks</label>
 
                     <input
                         id="marks"
@@ -448,31 +508,26 @@ const QuestionForm = () => {
                         value={formData.marks}
                         onChange={handleChange}
                         disabled={loading}
+                        required
                     />
                 </div>
 
-                {/* Options */}
+                {/* Answer options */}
                 <div className="options-section">
                     <div className="options-header">
                         <div>
                             <h2>Answer Options</h2>
-
-                            <p>
-                                Select exactly one correct answer.
-                            </p>
+                            <p>Select exactly one correct answer.</p>
                         </div>
                     </div>
 
                     {options.map((option, index) => {
-                        const letter =
-                            String.fromCharCode(65 + index);
+                        const letter = String.fromCharCode(65 + index);
 
                         return (
                             <div
                                 className={`option-row ${
-                                    option.is_correct
-                                        ? "correct-option"
-                                        : ""
+                                    option.is_correct ? "correct-option" : ""
                                 }`}
                                 key={index}
                             >
@@ -491,6 +546,7 @@ const QuestionForm = () => {
                                     }
                                     placeholder={`Option ${letter}`}
                                     disabled={loading}
+                                    required
                                 />
 
                                 <label className="correct-answer">
@@ -503,7 +559,6 @@ const QuestionForm = () => {
                                         }
                                         disabled={loading}
                                     />
-
                                     Correct
                                 </label>
                             </div>
@@ -511,14 +566,12 @@ const QuestionForm = () => {
                     })}
                 </div>
 
-                {/* Buttons */}
+                {/* Actions */}
                 <div className="question-form-actions">
                     <button
                         type="button"
                         className="form-cancel-button"
-                        onClick={() =>
-                            navigate("/admin/questions")
-                        }
+                        onClick={() => navigate(getQuestionsPage())}
                         disabled={loading}
                     >
                         Cancel
@@ -542,4 +595,3 @@ const QuestionForm = () => {
 };
 
 export default QuestionForm;
-

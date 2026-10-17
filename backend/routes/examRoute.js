@@ -55,7 +55,6 @@ router.get(
     "/student/available",
     authenticate,
     roleMiddleware("student"),
-    examController.getAvailableExamsForStudent
-);
+    examController.getAvailableExamsForStudent);
 
 module.exports = router;

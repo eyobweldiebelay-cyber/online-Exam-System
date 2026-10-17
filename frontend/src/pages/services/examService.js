@@ -1,4 +1,4 @@
-import api from "../../pages/services/api";
+import api from "./api";
 
 // Get all exams - Admin
 export const getAllExams = async () => {

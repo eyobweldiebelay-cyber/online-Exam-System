@@ -1,4 +1,4 @@
-import api from "../../pages/services/api";
+import api from "./api";
 
 // Get results for the logged-in student
 export const getMyResults = async () => {

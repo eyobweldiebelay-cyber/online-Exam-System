@@ -1,12 +1,11 @@
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     getExamById,
-    getExamQuestions,
-    addQuestionsToExam
+    getExamQuestions
 } from "../services/examService";
-import { getAllQuestions } from "../services/questionService";
+import { getQuestionById } from "../services/questionService";
 import "../../css/admin/examQuestions.css";
 
 const ExamQuestions = () => {
@@ -15,40 +14,34 @@ const ExamQuestions = () => {
 
     const [exam, setExam] = useState(null);
     const [assignedQuestions, setAssignedQuestions] = useState([]);
-    const [questionBank, setQuestionBank] = useState([]);
-    const [selectedIds, setSelectedIds] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+
+    const [viewQuestion, setViewQuestion] = useState(null);
+    const [detailLoading, setDetailLoading] = useState(false);
 
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
             setError("");
 
-            const [examData, assignedData, bankData] = await Promise.all([
+            const [examData, assignedData] = await Promise.all([
                 getExamById(examId),
-                getExamQuestions(examId),
-                getAllQuestions()
+                getExamQuestions(examId)
             ]);
 
             setExam(examData.exam || examData);
+
             setAssignedQuestions(
                 Array.isArray(assignedData)
                     ? assignedData
                     : assignedData.questions || []
             );
-            setQuestionBank(
-                Array.isArray(bankData)
-                    ? bankData
-                    : bankData.questions || []
-            );
         } catch (err) {
             console.error("Failed to load exam questions:", err);
             setError(
                 err.response?.data?.message ||
-                "Failed to load the exam and question bank."
+                "Failed to load the exam questions."
             );
         } finally {
             setLoading(false);
@@ -59,109 +52,39 @@ const ExamQuestions = () => {
         loadData();
     }, [loadData]);
 
-    const assignedIds = useMemo(
-        () => new Set(
-            assignedQuestions.map((question) =>
-                Number(question.question_id ?? question.id)
-            )
-        ),
-        [assignedQuestions]
-    );
-
-    const availableQuestions = useMemo(() => {
-        if (!exam) return [];
-
-        return questionBank.filter((question) =>
-            Number(question.department_id) === Number(exam.department_id) &&
-            question.status === "active" &&
-            !assignedIds.has(Number(question.id))
-        );
-    }, [exam, questionBank, assignedIds]);
-
-    const toggleQuestion = (questionId) => {
-        setSelectedIds((current) =>
-            current.includes(questionId)
-                ? current.filter((id) => id !== questionId)
-                : [...current, questionId]
-        );
-        setError("");
-        setSuccess("");
-    };
-
-    const selectAllAvailable = () => {
-        setSelectedIds((current) => {
-            const combined = new Set([
-                ...current,
-                ...availableQuestions.map((question) => Number(question.id))
-            ]);
-            return [...combined];
-        });
-        setError("");
-        setSuccess("");
-    };
-
-    const clearSelection = () => {
-        setSelectedIds([]);
-        setError("");
-        setSuccess("");
-    };
-
-    const handleAssign = async () => {
-        if (selectedIds.length === 0) {
-            setError("Select at least one question to assign.");
-            return;
-        }
-
-        if (
-            exam.total_questions &&
-            assignedQuestions.length + selectedIds.length >
-                Number(exam.total_questions)
-        ) {
-            setError(
-                `You can assign only ${Math.max(
-                    0,
-                    Number(exam.total_questions) - assignedQuestions.length
-                )} more question(s) to this exam.`
-            );
-            return;
-        }
-
+    // Fetch the full question, including options and correct-answer flags.
+    const handleViewQuestion = async (questionId) => {
         try {
-            setSaving(true);
+            setDetailLoading(true);
             setError("");
-            setSuccess("");
+            setViewQuestion(null);
 
-            const lastOrder = assignedQuestions.reduce(
-                (highest, question) =>
-                    Math.max(highest, Number(question.question_order) || 0),
-                0
-            );
+            const response = await getQuestionById(questionId);
+            const question = response.question || response;
 
-            const questions = selectedIds.map((questionId, index) => ({
-                question_id: questionId,
-                question_order: lastOrder + index + 1
-            }));
-
-            await addQuestionsToExam(examId, questions);
-
-            setSelectedIds([]);
-            setSuccess("Questions assigned to the exam successfully.");
-            await loadData();
+            setViewQuestion(question);
         } catch (err) {
-            console.error("Failed to assign questions:", err);
+            console.error("Failed to load question details:", err);
             setError(
                 err.response?.data?.message ||
-                "Failed to assign questions. Please try again."
+                "Failed to load question details."
             );
         } finally {
-            setSaving(false);
+            setDetailLoading(false);
         }
+    };
+
+    // Uses the existing Admin question-edit route.
+    const handleEditQuestion = (questionId) => {
+        navigate(`/admin/questions/edit/${questionId}`);
     };
 
     if (loading) {
         return (
             <div className="exam-questions-page">
-                <div className="eq-loading">Loading exam questions...</div>
+                <div className="eq-loading">
+                    Loading exam questions...
+                </div>
             </div>
         );
     }
@@ -172,6 +95,7 @@ const ExamQuestions = () => {
                 <div className="eq-alert eq-error">
                     {error || "Exam not found."}
                 </div>
+
                 <button
                     className="eq-secondary-btn"
                     onClick={() => navigate("/admin/exams")}
@@ -184,7 +108,19 @@ const ExamQuestions = () => {
 
     const requiredCount = Number(exam.total_questions) || 0;
     const assignedCount = assignedQuestions.length;
-    const remainingCount = Math.max(0, requiredCount - assignedCount);
+    const remainingCount = Math.max(
+        0,
+        requiredCount - assignedCount
+    );
+
+    const questionOptions = viewQuestion
+        ? (
+            viewQuestion.options ||
+            viewQuestion.question_options ||
+            viewQuestion.answers ||
+            []
+        )
+        : [];
 
     return (
         <div className="exam-questions-page">
@@ -193,7 +129,7 @@ const ExamQuestions = () => {
                     <p className="eq-eyebrow">EXAM MANAGEMENT</p>
                     <h1>Manage Exam Questions</h1>
                     <p className="eq-subtitle">
-                        Choose questions from the question bank for this exam.
+                        Review questions already assigned to this exam.
                     </p>
                 </div>
 
@@ -208,13 +144,20 @@ const ExamQuestions = () => {
             <section className="eq-exam-card">
                 <div>
                     <h2>{exam.title}</h2>
+
                     <p>
                         Department:{" "}
-                        <strong>{exam.department_name || `ID ${exam.department_id}`}</strong>
+                        <strong>
+                            {exam.department_name ||
+                                `ID ${exam.department_id}`}
+                        </strong>
                     </p>
+
                     <p>
                         Status:{" "}
-                        <span className={`eq-status eq-status-${exam.status}`}>
+                        <span
+                            className={`eq-status eq-status-${exam.status}`}
+                        >
                             {exam.status}
                         </span>
                     </p>
@@ -225,10 +168,12 @@ const ExamQuestions = () => {
                         <span>Required</span>
                         <strong>{requiredCount}</strong>
                     </div>
+
                     <div className="eq-count-item">
                         <span>Assigned</span>
                         <strong>{assignedCount}</strong>
                     </div>
+
                     <div className="eq-count-item">
                         <span>Remaining</span>
                         <strong>{remainingCount}</strong>
@@ -242,18 +187,15 @@ const ExamQuestions = () => {
                 </div>
             )}
 
-            {success && (
-                <div className="eq-alert eq-success" role="status">
-                    {success}
-                </div>
-            )}
-
             <section className="eq-section">
                 <div className="eq-section-header">
                     <div>
                         <h2>Assigned Questions</h2>
-                        <p>Questions already linked to this exam.</p>
+                        <p>
+                            Questions already linked to this exam.
+                        </p>
                     </div>
+
                     <span className="eq-section-count">
                         {assignedCount} / {requiredCount}
                     </span>
@@ -265,137 +207,213 @@ const ExamQuestions = () => {
                     </div>
                 ) : (
                     <div className="eq-question-list">
-                        {assignedQuestions.map((question) => (
-                            <article
-                                className="eq-question-card"
-                                key={question.question_id ?? question.id}
-                            >
-                                <div className="eq-question-number">
-                                    {question.question_order}
-                                </div>
-                                <div className="eq-question-content">
-                                    <p>{question.question_text}</p>
-                                    <span>
-                                        Question ID: {question.question_id}
-                                        {" · "}
-                                        {Number(question.marks || 1)} mark(s)
-                                    </span>
-                                </div>
-                                <span className="eq-assigned-label">Assigned</span>
-                            </article>
-                        ))}
-                    </div>
-                )}
-            </section>
+                        {assignedQuestions.map((question) => {
+                            const questionId = Number(
+                                question.question_id ?? question.id
+                            );
 
-            <section className="eq-section">
-                <div className="eq-section-header">
-                    <div>
-                        <h2>Question Bank</h2>
-                        <p>
-                            Only active questions from this exam's department
-                            are shown.
-                        </p>
-                    </div>
-                    <span className="eq-section-count">
-                        {availableQuestions.length} available
-                    </span>
-                </div>
-
-                {availableQuestions.length === 0 ? (
-                    <div className="eq-empty">
-                        No additional active questions are available for this
-                        department. Create more questions in Question Management
-                        if needed.
-                    </div>
-                ) : (
-                    <>
-                        <div className="eq-selection-toolbar">
-                            <span>
-                                {selectedIds.length} question(s) selected
-                            </span>
-                            <div>
-                                <button
-                                    type="button"
-                                    className="eq-text-btn"
-                                    onClick={selectAllAvailable}
+                            return (
+                                <article
+                                    className="eq-question-card"
+                                    key={questionId}
                                 >
-                                    Select all
-                                </button>
-                                <button
-                                    type="button"
-                                    className="eq-text-btn"
-                                    onClick={clearSelection}
-                                >
-                                    Clear selection
-                                </button>
-                            </div>
-                        </div>
+                                    <div className="eq-question-number">
+                                        {question.question_order}
+                                    </div>
 
-                        <div className="eq-question-list">
-                            {availableQuestions.map((question) => {
-                                const questionId = Number(question.id);
-                                const checked = selectedIds.includes(questionId);
+                                    <div className="eq-question-content">
+                                        <p>{question.question_text}</p>
 
-                                return (
-                                    <label
-                                        className={`eq-bank-question ${
-                                            checked ? "eq-selected" : ""
-                                        }`}
-                                        key={question.id}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() =>
-                                                toggleQuestion(questionId)
-                                            }
-                                            disabled={
-                                                saving ||
-                                                exam.status !== "draft" ||
-                                                remainingCount === 0
-                                            }
-                                        />
+                                        <span>
+                                            Question ID: {questionId}
+                                            {" · "}
+                                            {Number(question.marks || 1)}
+                                            {" mark(s)"}
+                                        </span>
 
-                                        <div className="eq-question-content">
-                                            <p>{question.question_text}</p>
-                                            <span>
-                                                ID: {question.id}
-                                                {" · "}
-                                                {Number(question.marks || 1)} mark(s)
-                                            </span>
+                                        <div className="eq-question-actions">
+                                            <button
+                                                type="button"
+                                                className="eq-view-btn"
+                                                onClick={() =>
+                                                    handleViewQuestion(
+                                                        questionId
+                                                    )
+                                                }
+                                            >
+                                                View Question
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="eq-edit-btn"
+                                                onClick={() =>
+                                                    handleEditQuestion(
+                                                        questionId
+                                                    )
+                                                }
+                                            >
+                                                Edit Question
+                                            </button>
                                         </div>
-                                    </label>
-                                );
-                            })}
-                        </div>
-                    </>
+                                    </div>
+
+                                    <span className="eq-assigned-label">
+                                        Assigned
+                                    </span>
+                                </article>
+                            );
+                        })}
+                    </div>
                 )}
-
-                <div className="eq-footer-actions">
-                    {exam.status !== "draft" && (
-                        <p className="eq-readonly-note">
-                            Only draft exams can be assigned new questions.
-                        </p>
-                    )}
-
-                    <button
-                        type="button"
-                        className="eq-primary-btn"
-                        onClick={handleAssign}
-                        disabled={
-                            saving ||
-                            selectedIds.length === 0 ||
-                            exam.status !== "draft" ||
-                            remainingCount === 0
-                        }
-                    >
-                        {saving
-                            ? "Assigning..."
-                            : `Assign ${selectedIds.length} Selected Question(s)`}
-                    </button>
-                </div>
             </section>
+
+            {detailLoading && (
+                <div className="eq-modal-overlay">
+                    <div
+                        className="eq-question-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Loading question details"
+                    >
+                        <p>Loading question details...</p>
+                    </div>
+                </div>
+            )}
+
+            {viewQuestion && (
+                <div
+                    className="eq-modal-overlay"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setViewQuestion(null);
+                        }
+                    }}
+                >
+                    <section
+                        className="eq-question-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="eq-modal-title"
+                    >
+                        <div className="eq-modal-header">
+                            <div>
+                                <p className="eq-eyebrow">
+                                    QUESTION DETAILS
+                                </p>
+
+                                <h2 id="eq-modal-title">
+                                    Question #{viewQuestion.id}
+                                </h2>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="eq-modal-close"
+                                onClick={() => setViewQuestion(null)}
+                                aria-label="Close question details"
+                            >
+                                &times;
+                            </button>
+                        </div>
+
+                        <div className="eq-modal-meta">
+                            <span>
+                                Marks:{" "}
+                                <strong>
+                                    {Number(viewQuestion.marks || 1)}
+                                </strong>
+                            </span>
+
+                            <span>
+                                Status:{" "}
+                                <strong>
+                                    {viewQuestion.status || "Unknown"}
+                                </strong>
+                            </span>
+
+                            <span>
+                                Department:{" "}
+                                <strong>
+                                    {viewQuestion.department_name ||
+                                        exam.department_name ||
+                                        `ID ${viewQuestion.department_id}`}
+                                </strong>
+                            </span>
+                        </div>
+
+                        <div className="eq-modal-question">
+                            <h3>Question</h3>
+                            <p>{viewQuestion.question_text}</p>
+                        </div>
+
+                        <div className="eq-modal-options">
+                            <h3>Answer Options</h3>
+
+                            {questionOptions.length === 0 ? (
+                                <p className="eq-readonly-note">
+                                    No answer options were returned. Check the
+                                    question detail API response.
+                                </p>
+                            ) : (
+                                questionOptions.map((option, index) => {
+                                    const isCorrect =
+                                        option.is_correct === 1 ||
+                                        option.is_correct === true ||
+                                        option.is_correct === "1";
+
+                                    return (
+                                        <div
+                                            className={`eq-detail-option ${
+                                                isCorrect
+                                                    ? "eq-correct-option"
+                                                    : ""
+                                            }`}
+                                            key={option.id ?? index}
+                                        >
+                                            <span className="eq-option-letter">
+                                                {String.fromCharCode(65 + index)}.
+                                            </span>
+
+                                            <span className="eq-option-text">
+                                                {option.option_text ??
+                                                    option.text ??
+                                                    option.answer_text}
+                                            </span>
+
+                                            {isCorrect && (
+                                                <span className="eq-correct-label">
+                                                    Correct Answer
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        <div className="eq-modal-footer">
+                            <button
+                                type="button"
+                                className="eq-secondary-btn"
+                                onClick={() => setViewQuestion(null)}
+                            >
+                                Close
+                            </button>
+
+                            <button
+                                type="button"
+                                className="eq-primary-btn"
+                                onClick={() =>
+                                    handleEditQuestion(viewQuestion.id)
+                                }
+                            >
+                                Edit Question
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
         </div>
     );
 };

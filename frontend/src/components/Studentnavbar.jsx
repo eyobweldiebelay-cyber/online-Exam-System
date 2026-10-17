@@ -1,75 +1,76 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronDown, LockKeyhole, LogOut } from "lucide-react";
 
-import "../css/navbar.css";
-import imagelog from '../image/logo.jpg'
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+    LockKeyhole,
+    LogOut,
+    Sun,
+    Moon,
+} from "lucide-react";
+
+import "../css/student/studentnavbar.css";
+import imagelog from "../image/logo.jpg";
 
 function StudentNavbar() {
-
     const navigate = useNavigate();
 
-    const [showAccount, setShowAccount] =
-        useState(false);
-
     // Get logged-in student information
-    const user = JSON.parse(
-        localStorage.getItem("user")
+    const user = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("user")) || {};
+        } catch {
+            return {};
+        }
+    })();
+
+    const studentId = user.username || "Student";
+    const profileLetter = studentId.charAt(0).toUpperCase();
+
+    // Restore the saved navbar theme
+    const [theme, setTheme] = useState(
+        () => localStorage.getItem("student-theme") || "light"
     );
 
-    const studentId =
-        user?.username || "Student";
+    // Apply the theme attribute to the document
+    useEffect(() => {
+        document.documentElement.dataset.theme = theme;
+    }, [theme]);
 
-    // Use first letter as temporary profile icon
-    const profileLetter =
-        studentId.charAt(0).toUpperCase();
+    // Toggle navbar light/dark mode
+    function handleThemeToggle() {
+        const nextTheme = theme === "light" ? "dark" : "light";
 
+        setTheme(nextTheme);
+        localStorage.setItem("student-theme", nextTheme);
+    }
+
+    // Navigate to the existing change-password page
     function handleChangePassword() {
-
-        setShowAccount(false);
-
         navigate("/change-password");
     }
 
+    // Log out the student
     function handleLogout() {
-
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        navigate("/login");
+        navigate("/login", { replace: true });
     }
 
     return (
-
         <header className="student-navbar">
-
             <div className="student-navbar-left">
-
                 <img
                     src={imagelog}
                     alt="College Logo"
                     className="college-logo"
                 />
 
-                <h1>
-                    Online Examination System
-                </h1>
-
+                <h1>Online Examination System</h1>
             </div>
 
-            <div className="student-account">
-
-                <button
-                    type="button"
-                    className="student-account-button"
-                    onClick={() =>
-                        setShowAccount(
-                            (previousValue) =>
-                                !previousValue
-                        )
-                    }
-                >
-
+            <div className="student-navbar-actions">
+                <div className="student-profile" title={studentId}>
                     <span className="student-profile-circle">
                         {profileLetter}
                     </span>
@@ -77,79 +78,46 @@ function StudentNavbar() {
                     <span className="student-id">
                         {studentId}
                     </span>
+                </div>
 
-                    <ChevronDown
-                        size={18}
-                        className={
-                            showAccount
-                                ? "account-arrow open"
-                                : "account-arrow"
-                        }
-                    />
-
+                <button
+                    type="button"
+                    className="student-navbar-action"
+                    onClick={handleChangePassword}
+                    title="Change Password"
+                >
+                    <LockKeyhole size={18} />
+                    <span>Change Password</span>
                 </button>
 
-                {showAccount && (
+                <button
+                    type="button"
+                    className="student-navbar-action theme-toggle"
+                    onClick={handleThemeToggle}
+                    title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+                    aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+                >
+                    {theme === "light" ? (
+                        <Moon size={19} />
+                    ) : (
+                        <Sun size={19} />
+                    )}
 
-                    <div className="student-account-menu">
+                    <span>
+                        {theme === "light" ? "Dark Mode" : "Light Mode"}
+                    </span>
+                </button>
 
-                        <div className="account-menu-header">
-
-                            <div className="account-large-circle">
-                                {profileLetter}
-                            </div>
-
-                            <div>
-                                <strong>
-                                    {studentId}
-                                </strong>
-
-                                <span>
-                                    Student
-                                </span>
-                            </div>
-
-                        </div>
-
-                        <div className="account-menu-divider"></div>
-
-                        <button
-                            type="button"
-                            onClick={
-                                handleChangePassword
-                            }
-                        >
-
-                            <LockKeyhole size={18} />
-
-                            <span>
-                                Change Password
-                            </span>
-
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={
-                                handleLogout
-                            }
-                            className="logout-button"
-                        >
-
-                            <LogOut size={18} />
-
-                            <span>
-                                Logout
-                            </span>
-
-                        </button>
-
-                    </div>
-
-                )}
-
+                <button
+                    type="button"
+                    className="student-navbar-action logout-button"
+                    onClick={handleLogout}
+                    title="Logout"
+                >
+                    <LogOut size={18} />
+                    <span>Logout</span>
+                </button>
             </div>
-
         </header>
     );
 }

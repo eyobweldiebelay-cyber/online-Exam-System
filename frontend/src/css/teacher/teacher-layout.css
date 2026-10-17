@@ -1,0 +1,44 @@
+.teacher-layout {
+  min-height: 100vh;
+  background: var(--teacher-page-bg, #f8fafc);
+  color: var(--teacher-page-text, #172033);
+}
+
+.teacher-layout-content {
+  width: 100%;
+  max-width: 1600px;
+  min-height: calc(100vh - 76px);
+  margin: 0 auto;
+  padding: 28px;
+}
+
+html.dark {
+  --teacher-page-bg: #0b1120;
+  --teacher-page-text: #f3f4f6;
+}
+
+@media (max-width: 640px) {
+  .teacher-layout-content {
+    min-height: calc(100vh - 66px);
+    padding: 16px;
+  }
+}
+
+.teacher-layout-body {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 76px);
+}
+
+.teacher-layout-content {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .teacher-layout-body {
+    flex-direction: column;
+  }
+}

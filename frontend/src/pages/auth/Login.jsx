@@ -28,7 +28,7 @@ function Login() {
 
         // Validate username
         if (!username.trim()) {
-            setUsernameError("Student ID is required");
+            setUsernameError("Username is required");
             isValid = false;
         } else {
             setUsernameError("");
@@ -52,10 +52,13 @@ function Login() {
             // Login through the existing AuthContext
             const data = await login(username.trim(), password);
 
-            setMessage("Login successful");
+            // Normalize the role to handle capitalization and whitespace
+            const role = String(data?.user?.role || "")
+                .toLowerCase()
+                .trim();
 
-            // Navigate according to role and password status
-            if (data.user.role === "student") {
+            // Student login: preserve existing password-change flow
+            if (role === "student") {
                 if (data.user.must_change_password) {
                     navigate("/change-password", { replace: true });
                 } else {
@@ -64,12 +67,24 @@ function Login() {
                 return;
             }
 
-            if (data.user.role === "admin") {
+            // Admin login
+            if (role === "admin") {
                 navigate("/admin", { replace: true });
                 return;
             }
 
-            setMessage("Your account role is not recognized.");
+            // Teacher login
+            if (role === "teacher") {
+                navigate("/teacher/questions", { replace: true });
+                return;
+            }
+
+            // Unknown or missing role
+            setMessage(
+                `Your account role is not recognized: ${
+                    data?.user?.role || "missing role"
+                }. Please contact the administrator.`
+            );
         } catch (error) {
             console.error("Login error:", error);
 
@@ -102,13 +117,13 @@ function Login() {
                     {/* Username */}
                     <div className="form-group">
                         <label htmlFor="username">
-                            Student username
+                            Username
                         </label>
 
                         <input
                             id="username"
                             type="text"
-                            placeholder="Enter your student ID or username"
+                            placeholder="Enter your username or student ID"
                             value={username}
                             onChange={(event) =>
                                 setUsername(event.target.value)

@@ -1,0 +1,203 @@
+
+.public-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    width: 100%;
+    background: var(--public-nav-bg, #ffffff);
+    border-bottom: 1px solid var(--public-border, #e5e7eb);
+    box-shadow: 0 3px 15px rgba(15, 23, 42, 0.04);
+}
+
+.public-navbar-container {
+    width: min(1200px, calc(100% - 48px));
+    min-height: 82px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+}
+
+.public-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--public-text, #14213d);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.public-brand-logo {
+    display: block;
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+}
+
+.public-brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.public-brand-text strong {
+    font-size: 19px;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+}
+
+.public-brand-text small {
+    color: var(--public-muted, #64748b);
+    font-size: 11px;
+    letter-spacing: 0.2px;
+}
+
+.public-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.public-nav-links > a {
+    color: var(--public-text, #334155);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.public-nav-links > a:not(.public-login-button):hover {
+    color: var(--public-primary, #1746a2);
+}
+
+.public-login-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 43px;
+    padding: 0 23px;
+    border-radius: 8px;
+    background: var(--public-primary, #1746a2);
+    color: #ffffff !important;
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.public-login-button:hover {
+    background: var(--public-primary-hover, #10377f);
+    transform: translateY(-1px);
+}
+
+.public-theme-toggle {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--public-border, #dbe2ea);
+    border-radius: 8px;
+    background: var(--public-surface, #ffffff);
+    color: var(--public-text, #1e293b);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+}
+
+.public-theme-toggle:hover {
+    background: var(--public-hover, #f1f5f9);
+}
+
+.public-menu-toggle {
+    display: none;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--public-border, #dbe2ea);
+    border-radius: 8px;
+    background: var(--public-surface, #ffffff);
+    color: var(--public-text, #14213d);
+    font-size: 23px;
+    cursor: pointer;
+}
+
+@media (max-width: 760px) {
+    .public-navbar-container {
+        width: calc(100% - 32px);
+        min-height: 72px;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .public-brand {
+        gap: 9px;
+    }
+
+    .public-brand-logo {
+        width: 45px;
+        height: 45px;
+    }
+
+    .public-brand-text strong {
+        font-size: 16px;
+    }
+
+    .public-brand-text small {
+        font-size: 10px;
+    }
+
+    .public-menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+    }
+
+    .public-nav-links {
+        display: none;
+        width: 100%;
+        padding: 4px 0 20px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+    }
+
+    .public-nav-links.public-nav-open {
+        display: flex;
+    }
+
+    .public-nav-links > a:not(.public-login-button) {
+        padding: 14px 8px;
+        border-bottom: 1px solid var(--public-border, #e5e7eb);
+    }
+
+    .public-login-button {
+        margin-top: 12px;
+    }
+
+    .public-theme-toggle {
+        margin-top: 12px;
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .public-nav-links > a,
+    .public-login-button,
+    .public-theme-toggle {
+        transition: none;
+    }
+}
+/* Keep landing page content below the fixed navbar */
+.landing-page {
+    padding-top: 82px;
+}
+
+/* Keep login page content below the fixed navbar */
+.login-page {
+    padding-top: 78px;
+   
+}

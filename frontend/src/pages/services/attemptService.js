@@ -1,5 +1,5 @@
 
-import api from "../../pages/services/api";
+import api from "./api";
 
 // ===============================
 // START EXAM ATTEMPT

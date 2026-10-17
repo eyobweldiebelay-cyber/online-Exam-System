@@ -1,27 +1,17 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-import {
-    getAllQuestions,
-    deactivateQuestion,
-    activateQuestion
-} from "../services/questionService";
+import { useEffect, useMemo, useState } from "react";
 
+import { getAllQuestions } from "../services/questionService";
 import "../../css/admin/question.css";
 
-const Questions = () => {
-
-    const navigate = useNavigate();
-
+const Question = () => {
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [actionLoading, setActionLoading] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
 
     const loadQuestions = async () => {
-
         try {
-
             setLoading(true);
             setError("");
 
@@ -30,121 +20,81 @@ const Questions = () => {
             setQuestions(
                 Array.isArray(data)
                     ? data
-                    : data.questions || []
+                    : Array.isArray(data?.questions)
+                        ? data.questions
+                        : []
             );
-
-        } catch (error) {
-
-            console.error(
-                "Get questions error:",
-                error
-            );
+        } catch (err) {
+            console.error("Get questions error:", err);
 
             setError(
-                error.response?.data?.message ||
-                "Failed to load questions"
+                err.response?.data?.message ||
+                err.message ||
+                "Failed to load questions."
             );
-
         } finally {
-
             setLoading(false);
         }
     };
-
 
     useEffect(() => {
         loadQuestions();
     }, []);
 
-
-    const handleDeactivate = async (id) => {
-
-        const confirmed = window.confirm(
-            "Are you sure you want to deactivate this question?"
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
-        try {
-
-            setActionLoading(id);
-            setError("");
-
-            await deactivateQuestion(id);
-
-            await loadQuestions();
-
-        } catch (error) {
-
-            console.error(
-                "Deactivate question error:",
-                error
-            );
-
-            setError(
-                error.response?.data?.message ||
-                "Failed to deactivate question"
-            );
-
-        } finally {
-
-            setActionLoading(null);
-        }
-    };
-
-
-    const handleActivate = async (id) => {
-
-        const confirmed = window.confirm(
-            "Are you sure you want to activate this question?"
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
-        try {
-
-            setActionLoading(id);
-            setError("");
-
-            await activateQuestion(id);
-
-            await loadQuestions();
-
-        } catch (error) {
-
-            console.error(
-                "Activate question error:",
-                error
-            );
-
-            setError(
-                error.response?.data?.message ||
-                "Failed to activate question"
-            );
-
-        } finally {
-
-            setActionLoading(null);
-        }
-    };
-
-
     const getStatusLabel = (status) => {
-
-        if (status === "active") {
-            return "Active";
-        }
-
-        return "Inactive";
+        if (status === "active") return "Active";
+        if (status === "inactive") return "Inactive";
+        return status || "Unknown";
     };
 
+    const getAcademicYear = (question) => {
+        return (
+            question.academic_year ||
+            question.academic_year_name ||
+            "Not assigned"
+        );
+    };
+
+    // Every search word must match somewhere in the question's details.
+    // This supports searches such as "Information Technology 2026/2027".
+    const filteredQuestions = useMemo(() => {
+        const terms = searchTerm
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+
+        if (terms.length === 0) {
+            return questions;
+        }
+
+        return questions.filter((question) => {
+            const searchableText = [
+                question.id,
+                question.question_text,
+                question.program_name,
+                question.department_name,
+                question.academic_year,
+                question.academic_year_name,
+                question.academic_year_id,
+                question.created_by_username,
+                question.status,
+                question.marks,
+                question.created_at
+                    ? new Date(question.created_at).toLocaleDateString()
+                    : ""
+            ]
+                .filter((value) => value !== null && value !== undefined)
+                .join(" ")
+                .toLowerCase();
+
+            return terms.every((term) =>
+                searchableText.includes(term)
+            );
+        });
+    }, [questions, searchTerm]);
 
     if (loading) {
-
         return (
             <div className="admin-page">
                 <div className="admin-loading">
@@ -154,45 +104,38 @@ const Questions = () => {
         );
     }
 
-
     return (
         <div className="admin-page">
-
-            {/* Header */}
             <div className="admin-page-header">
-
                 <div>
-                    <h1> Welcome TO Question Management Page</h1>
-
+                    <h1>Question Management</h1>
                     <strong>
-                        Create, update Activate and deactivate  examination questions.
+                        View examination questions across departments
+                        and see their recorded creators.
                     </strong>
                 </div>
-
-                <button
-                    className="primary-button"
-                    onClick={() =>
-                        navigate("/admin/questions/create")
-                    }
-                >
-                    + Add Question
-                </button>
-
             </div>
 
-
-            {/* Error */}
             {error && (
-                <div className="admin-error">
+                <div className="admin-error" role="alert">
                     {error}
                 </div>
             )}
 
-
-            {/* Refresh */}
             <div className="admin-toolbar">
+                <input
+                    type="search"
+                    className="question-search-input"
+                    placeholder="Search by question, department, academic year..."
+                    value={searchTerm}
+                    onChange={(event) =>
+                        setSearchTerm(event.target.value)
+                    }
+                    aria-label="Search questions by department, academic year, or other details"
+                />
 
                 <button
+                    type="button"
                     className="secondary-button"
                     onClick={loadQuestions}
                     disabled={loading}
@@ -201,172 +144,102 @@ const Questions = () => {
                 </button>
 
                 <span className="question-count">
-                    {questions.length} question
+                    {filteredQuestions.length} of {questions.length} question
                     {questions.length !== 1 ? "s" : ""}
                 </span>
-
             </div>
 
-
-            {/* Empty */}
             {questions.length === 0 ? (
-
                 <div className="admin-empty">
-
                     <h2>No Questions Found</h2>
-
                     <p>
-                        Create your first examination question.
+                        No examination questions are currently available.
                     </p>
-
-                    <button
-                        className="primary-button"
-                        onClick={() =>
-                            navigate("/admin/questions/create")
-                        }
-                    >
-                        + Add Question
-                    </button>
-
                 </div>
-
+            ) : filteredQuestions.length === 0 ? (
+                <div className="admin-empty">
+                    <h2>No Matching Questions</h2>
+                    <p>
+                        No questions match "{searchTerm}". Try a different
+                        search term.
+                    </p>
+                </div>
             ) : (
-
                 <div className="admin-table-container">
-
                     <table className="admin-table">
-
                         <thead>
-
-                           <tr>
-    <th>ID</th>
-    <th>Question</th>
-    <th>Program</th>
-    <th>Department</th>
-    <th>Marks</th>
-    <th>Status</th>
-    <th>Actions</th>
-</tr>
-
+                            <tr>
+                                <th>ID</th>
+                                <th>Question</th>
+                                <th>Program</th>
+                                <th>Department</th>
+                                <th>Academic Year</th>
+                                <th>Created By</th>
+                                <th>Marks</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                            </tr>
                         </thead>
 
                         <tbody>
-
-                            {questions.map((question) => (
-
+                            {filteredQuestions.map((question) => (
                                 <tr key={question.id}>
-
-                                    <td>
-                                        {question.id}
-                                    </td>
+                                    <td>{question.id}</td>
 
                                     <td className="question-text-cell">
                                         {question.question_text}
                                     </td>
-                                    <td>
-                                     {question.program_name || "N/A"}
-                                       </td>
 
                                     <td>
-                                        {question.department_name}
+                                        {question.program_name || "N/A"}
                                     </td>
 
                                     <td>
-                                        {question.marks}
+                                        {question.department_name || "N/A"}
                                     </td>
 
                                     <td>
+                                        {getAcademicYear(question)}
+                                    </td>
 
+                                    <td>
+                                        {question.created_by_username ||
+                                            "Not recorded"}
+                                    </td>
+
+                                    <td>
+                                        {question.marks ?? "N/A"}
+                                    </td>
+
+                                    <td>
                                         <span
                                             className={`status-badge ${
                                                 question.status === "active"
                                                     ? "status-active"
-                                                    : "status-inactive"
+                                                    : question.status === "inactive"
+                                                        ? "status-inactive"
+                                                        : ""
                                             }`}
                                         >
-                                            {getStatusLabel(
-                                                question.status
-                                            )}
+                                            {getStatusLabel(question.status)}
                                         </span>
-
                                     </td>
 
                                     <td>
-
-                                        <div className="action-buttons">
-
-                                            <button
-                                                className="edit-button"
-                                                onClick={() =>
-                                                    navigate(
-                                                        `/admin/questions/edit/${question.id}`
-                                                    )
-                                                }
-                                            >
-                                                Edit
-                                            </button>
-
-
-                                            {question.status === "active" ? (
-
-                                                <button
-                                                    className="danger-button"
-                                                    disabled={
-                                                        actionLoading ===
-                                                        question.id
-                                                    }
-                                                    onClick={() =>
-                                                        handleDeactivate(
-                                                            question.id
-                                                        )
-                                                    }
-                                                >
-                                                    {actionLoading ===
-                                                    question.id
-                                                        ? "..."
-                                                        : "Deactivate"}
-                                                </button>
-
-                                            ) : (
-
-                                                <button
-                                                    className="success-button"
-                                                    disabled={
-                                                        actionLoading ===
-                                                        question.id
-                                                    }
-                                                    onClick={() =>
-                                                        handleActivate(
-                                                            question.id
-                                                        )
-                                                    }
-                                                >
-                                                    {actionLoading ===
-                                                    question.id
-                                                        ? "..."
-                                                        : "Activate"}
-                                                </button>
-
-                                            )}
-
-                                        </div>
-
+                                        {question.created_at
+                                            ? new Date(
+                                                  question.created_at
+                                              ).toLocaleDateString()
+                                            : "N/A"}
                                     </td>
-
                                 </tr>
-
                             ))}
-
                         </tbody>
-
                     </table>
-
                 </div>
-
             )}
-
         </div>
     );
 };
 
-export default Questions;
+export default Question;

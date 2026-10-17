@@ -1,0 +1,211 @@
+
+/* Compact System Maintenance card */
+.maintenance-control {
+    width: 100%;
+    max-width: 540px;
+    margin: 20px auto;
+    padding: 22px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    box-sizing: border-box;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    color: #1e293b;
+}
+
+/* Heading */
+.maintenance-control h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 10px;
+    color: #172554;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.maintenance-control h2::before {
+    content: "⚙";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    background: #eff6ff;
+    color: #2563eb;
+    border-radius: 10px;
+    font-size: 21px;
+}
+
+/* Description */
+.maintenance-control > p:first-of-type {
+    margin: 0 0 18px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* Student notice label */
+.maintenance-control label {
+    display: block;
+    margin-bottom: 7px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+/* Notice text field */
+.maintenance-control textarea {
+    display: block;
+    width: 100%;
+    min-height: 85px;
+    padding: 11px 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #1e293b;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s,
+        background 0.2s;
+}
+
+.maintenance-control textarea:hover {
+    border-color: #94a3b8;
+}
+
+.maintenance-control textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.maintenance-control textarea:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Current status */
+.maintenance-control > p:has(strong) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 16px 0;
+    padding: 11px 13px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    color: #475569;
+    font-size: 13px;
+}
+
+.maintenance-control > p:has(strong) strong {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 20px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* Enable / disable button */
+.maintenance-control button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 9px;
+    background: #1d4ed8;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.maintenance-control button:hover:not(:disabled) {
+    background: #1e40af;
+    transform: translateY(-1px);
+}
+
+.maintenance-control button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.maintenance-control button:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 2px;
+}
+
+.maintenance-control button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Error and success messages */
+.maintenance-control p[role="alert"],
+.maintenance-control p[role="status"] {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.maintenance-control p[role="alert"] {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.maintenance-control p[role="status"] {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+/* Loading message */
+.maintenance-control:has(> p:first-child:last-child) {
+    color: #64748b;
+}
+
+/* Tablet and mobile */
+@media (max-width: 640px) {
+    .maintenance-control {
+        max-width: 100%;
+        margin: 12px auto;
+        padding: 17px;
+        border-radius: 12px;
+    }
+
+    .maintenance-control h2 {
+        font-size: 19px;
+    }
+
+    .maintenance-control h2::before {
+        width: 35px;
+        height: 35px;
+        font-size: 19px;
+    }
+
+    .maintenance-control > p:has(strong) {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .maintenance-control button {
+        min-height: 42px;
+    }
+}

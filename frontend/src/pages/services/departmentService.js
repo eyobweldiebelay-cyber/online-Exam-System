@@ -1,4 +1,4 @@
-import api from "../../pages/services/api";
+import api from "./api";
 
 // Get all departments - Admin
 export const getAllDepartments = async () => {

@@ -1,0 +1,94 @@
+
+/* Default: Light mode */
+:root,
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --page-bg: #f8fafc;
+    --surface-bg: #ffffff;
+    --surface-secondary: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --input-bg: #ffffff;
+    --shadow-color: rgba(15, 23, 42, 0.08);
+}
+
+/* Dark mode */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --page-bg: #0f172a;
+    --surface-bg: #111827;
+    --surface-secondary: #1f2937;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --border-color: #374151;
+    --primary-color: #3b82f6;
+    --primary-hover: #60a5fa;
+    --input-bg: #1f2937;
+    --shadow-color: rgba(0, 0, 0, 0.25);
+}
+
+/* Shared page styling */
+body {
+    background: var(--page-bg);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Common elements */
+input,
+select,
+textarea {
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+table {
+    color: var(--text-primary);
+}
+
+th,
+td {
+    border-color: var(--border-color);
+}
+
+.theme-toggle {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    font: inherit;
+}
+
+.theme-toggle:hover {
+    background: var(--surface-secondary);
+}
+
+/* Reusable theme classes for existing pages */
+.theme-page {
+    background: var(--page-bg);
+    color: var(--text-primary);
+}
+
+.theme-card {
+    background: var(--surface-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.theme-muted {
+    color: var(--text-secondary);
+}
+
+.theme-primary {
+    background: var(--primary-color);
+    color: #ffffff;
+}

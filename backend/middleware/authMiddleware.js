@@ -24,10 +24,10 @@ async function authenticate(req, res, next) {
 
     try {
         const [users] = await db.execute(
-            `SELECT id, role, is_active, must_change_password
+            `SELECT id, role, department_id, is_active, must_change_password
              FROM users
-             WHERE id = ?
-             LIMIT 1`,
+            WHERE id = ?
+           LIMIT 1`,
             [decoded.id]
         );
 
@@ -37,17 +37,23 @@ async function authenticate(req, res, next) {
             });
         }
 
-        req.user = decoded;
-
         const user = users[0];
+
+        // Use the current database role, not the role stored in the token.
+       req.user = {
+    ...decoded,
+    id: user.id,
+    role: user.role,
+    department_id: user.department_id
+};
         const isChangePasswordRequest =
             req.originalUrl.split("?")[0].endsWith("/change-password");
 
-        if (
-            user.role === "student" &&
-            user.must_change_password &&
-            !isChangePasswordRequest
-        ) {
+       if (
+    ["student", "teacher"].includes(user.role) &&
+    user.must_change_password &&
+    !isChangePasswordRequest
+) {
             return res.status(403).json({
                 code: "PASSWORD_CHANGE_REQUIRED",
                 message: "Change your temporary password before continuing."

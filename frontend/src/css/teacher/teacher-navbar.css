@@ -1,0 +1,188 @@
+.teacher-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 76px;
+  padding: 12px 28px;
+  background: var(--teacher-navbar-bg, #ffffff);
+  color: var(--teacher-navbar-text, #172033);
+  border-bottom: 1px solid var(--teacher-navbar-border, #e5e7eb);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 4%);
+}
+
+.teacher-navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.teacher-navbar-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.teacher-navbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.teacher-navbar-college {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.3px;
+}
+
+.teacher-navbar-subtitle {
+  color: var(--teacher-navbar-muted, #64748b);
+  font-size: 12px;
+}
+
+.teacher-navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.teacher-theme-button,
+.teacher-logout-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--teacher-navbar-border, #e5e7eb);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.teacher-theme-button {
+  width: 42px;
+  font-size: 18px;
+}
+
+.teacher-logout-button {
+  padding: 0 14px;
+  color: var(--teacher-logout-text, #b42318);
+}
+
+.teacher-theme-button:hover,
+.teacher-logout-button:hover {
+  background: var(--teacher-navbar-hover, #f1f5f9);
+}
+
+.teacher-navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.teacher-navbar-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.teacher-navbar-user-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+html.dark {
+  color-scheme: dark;
+  --teacher-navbar-bg: #111827;
+  --teacher-navbar-text: #f3f4f6;
+  --teacher-navbar-muted: #9ca3af;
+  --teacher-navbar-border: #374151;
+  --teacher-navbar-hover: #1f2937;
+  --teacher-logout-text: #fca5a5;
+}
+
+html.dark body {
+  background: #0b1120;
+  color: #f3f4f6;
+}
+
+@media (max-width: 640px) {
+  .teacher-navbar {
+    min-height: 66px;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .teacher-navbar-logo {
+    width: 38px;
+    height: 38px;
+  }
+
+  .teacher-navbar-college {
+    font-size: 14px;
+  }
+
+  .teacher-navbar-subtitle {
+    max-width: 145px;
+    font-size: 10px;
+  }
+
+  .teacher-navbar-actions {
+    gap: 8px;
+  }
+
+  .teacher-navbar-user-name {
+    display: none;
+  }
+
+  .teacher-logout-button {
+    min-height: 38px;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .teacher-navbar {
+    padding: 8px;
+  }
+
+  .teacher-navbar-brand {
+    gap: 7px;
+  }
+
+  .teacher-navbar-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .teacher-navbar-subtitle {
+    display: none;
+  }
+
+  .teacher-logout-button {
+    gap: 4px;
+    font-size: 12px;
+  }
+}

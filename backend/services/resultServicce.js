@@ -59,12 +59,16 @@ const getMyResultByAttempt = async (userId, attemptId) => {
     const studentId = students[0].id;
 
     const [results] = await db.execute(
+        
         `
         SELECT
             r.id,
             r.attempt_id,
+            s.student_id AS student_id,
+            CONCAT_WS(' ', s.first_name, s.last_name) AS student_name,
             e.id AS exam_id,
             e.title AS exam_title,
+            ea.submitted_at AS completed_at,
             r.total_questions,
             r.correct_answers,
             r.wrong_answers,
@@ -76,9 +80,11 @@ const getMyResultByAttempt = async (userId, attemptId) => {
         FROM results r
         JOIN exam_attempts ea ON r.attempt_id = ea.id
         JOIN exams e ON ea.exam_id = e.id
+        JOIN students s ON ea.student_id = s.id
         WHERE r.attempt_id = ?
           AND ea.student_id = ?
         `,
+
         [attemptId, studentId]
     );
 

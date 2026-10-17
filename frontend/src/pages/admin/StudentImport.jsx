@@ -167,7 +167,7 @@ export default function StudentImport() {
         <div className="student-import-page">
             <div className="student-import-heading">
                 <div>
-                    <span className="student-import-eyebrow">
+                    {/*<span className="student-import-eyebrow">
                         ADMINISTRATION
                     </span>
 
@@ -176,7 +176,7 @@ export default function StudentImport() {
                     <p>
                         Import student records from Excel or CSV and
                         generate temporary login credentials.
-                    </p>
+                    </p>*/}
                 </div>
 
                 <div className="student-import-heading-icon">
@@ -201,6 +201,7 @@ export default function StudentImport() {
                         temporary passwords. Store it securely and
                         share each student's credentials privately.
                     </p>
+                    
                 </div>
             </div>
 
@@ -323,7 +324,8 @@ export default function StudentImport() {
                     The academic year is optional. The department
                     must match an existing department name, or you
                     can use a numeric department_id instead.
-                </p>
+                </p> 
+                
             </div>
         </div>
     );

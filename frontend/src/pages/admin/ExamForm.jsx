@@ -45,16 +45,34 @@ const ExamForm = ({ examId = null }) => {
         try {
             const response = await getAllPrograms();
 
-            setPrograms(
-                Array.isArray(response) ? response : []
+            console.log("All programs returned by API:", response);
+
+            const programList = Array.isArray(response)
+                ? response
+                : [];
+
+            // Keep Degree and Diploma unless explicitly inactive.
+            const availablePrograms = programList.filter(
+                (program) =>
+                    String(program.status ?? "").toLowerCase() !==
+                    "inactive"
             );
+
+            console.log("Programs displayed in dropdown:", availablePrograms);
+
+            setPrograms(availablePrograms);
+
+            return availablePrograms;
         } catch (err) {
             console.error("Failed to load programs:", err);
 
             setError(
                 err.response?.data?.message ||
-                "Failed to load programs"
+                "Failed to load programs."
             );
+
+            setPrograms([]);
+            return [];
         }
     };
 
@@ -104,7 +122,6 @@ const ExamForm = ({ examId = null }) => {
             }
 
             // Find the department belonging to this exam.
-            // The department already has its program_id.
             const examDepartment = departmentList.find(
                 (department) =>
                     Number(department.id) ===
@@ -425,19 +442,14 @@ const ExamForm = ({ examId = null }) => {
                                     Select program
                                 </option>
 
-                                {programs
-                                    .filter(
-                                        (program) =>
-                                            program.status !== "inactive"
-                                    )
-                                    .map((program) => (
-                                        <option
-                                            key={program.id}
-                                            value={program.id}
-                                        >
-                                            {program.name}
-                                        </option>
-                                    ))}
+                                {programs.map((program) => (
+                                    <option
+                                        key={program.id}
+                                        value={String(program.id)}
+                                    >
+                                        {program.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -466,14 +478,14 @@ const ExamForm = ({ examId = null }) => {
                                 {departments
                                     .filter(
                                         (department) =>
-                                            department.status !== "inactive" &&
+                                            String(department.status ?? "").toLowerCase() !== "inactive" &&
                                             Number(department.program_id) ===
                                                 Number(formData.program_id)
                                     )
                                     .map((department) => (
                                         <option
                                             key={department.id}
-                                            value={department.id}
+                                            value={String(department.id)}
                                         >
                                             {department.name}
                                         </option>
@@ -623,4 +635,3 @@ const ExamForm = ({ examId = null }) => {
 };
 
 export default ExamForm;
-

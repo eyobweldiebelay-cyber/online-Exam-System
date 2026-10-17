@@ -6,6 +6,7 @@ import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { changePassword } from "../pages/services/authService";
 import "../css/login.css";
+import "../css/change-password.css";
 
 function ChangePassword() {
     const navigate = useNavigate();
@@ -57,7 +58,6 @@ function ChangePassword() {
                 newPassword
             );
 
-            // Update the saved user so ProtectedRoute sees the new status.
             const updatedUser = {
                 ...user,
                 must_change_password: false
@@ -65,14 +65,19 @@ function ChangePassword() {
 
             localStorage.setItem("user", JSON.stringify(updatedUser));
 
+            if (sessionStorage.getItem("user")) {
+                sessionStorage.setItem("user", JSON.stringify(updatedUser));
+            }
+
             setMessage(
                 response.message || "Password changed successfully."
             );
 
-            // Redirect according to the user's role.
             setTimeout(() => {
                 if (updatedUser.role === "admin") {
                     navigate("/admin", { replace: true });
+                } else if (updatedUser.role === "teacher") {
+                    navigate("/teacher", { replace: true });
                 } else {
                     navigate("/student", { replace: true });
                 }
@@ -88,32 +93,29 @@ function ChangePassword() {
     }
 
     return (
-        <div className="login-page">
-            <div className="login-card">
-                <div className="login-header">
-                    <div className="college-logo">
-                        <LockKeyhole size={34} />
+        <div className="change-password-page">
+            <div className="change-password-card">
+                <div className="change-password-header">
+                    <div className="change-password-icon">
+                        <LockKeyhole size={32} />
                     </div>
 
                     <h1>Change Password</h1>
 
                     <p>
                         {user?.must_change_password
-                            ? "Set a new password before continuing to your exams."
+                            ? "Set a new password before continuing."
                             : "Update your account password."}
                     </p>
                 </div>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="login-form"
-                >
-                    <div className="form-group">
+                <form onSubmit={handleSubmit} className="change-password-form">
+                    <div className="change-password-group">
                         <label htmlFor="currentPassword">
                             Current Password
                         </label>
 
-                        <div className="password-wrapper">
+                        <div className="change-password-input-wrapper">
                             <input
                                 id="currentPassword"
                                 type={showCurrent ? "text" : "password"}
@@ -127,27 +129,27 @@ function ChangePassword() {
 
                             <button
                                 type="button"
-                                className="password-toggle"
-                                onClick={() =>
-                                    setShowCurrent((value) => !value)
-                                }
+                                className="change-password-eye"
+                                onClick={() => setShowCurrent((value) => !value)}
                                 aria-label={
                                     showCurrent
                                         ? "Hide current password"
                                         : "Show current password"
                                 }
                             >
-                                {showCurrent ? <EyeOff size={20} /> : <Eye size={20} />}
+                                {showCurrent
+                                    ? <EyeOff size={20} />
+                                    : <Eye size={20} />}
                             </button>
                         </div>
                     </div>
 
-                    <div className="form-group">
+                    <div className="change-password-group">
                         <label htmlFor="newPassword">
                             New Password
                         </label>
 
-                        <div className="password-wrapper">
+                        <div className="change-password-input-wrapper">
                             <input
                                 id="newPassword"
                                 type={showNew ? "text" : "password"}
@@ -161,27 +163,27 @@ function ChangePassword() {
 
                             <button
                                 type="button"
-                                className="password-toggle"
-                                onClick={() =>
-                                    setShowNew((value) => !value)
-                                }
+                                className="change-password-eye"
+                                onClick={() => setShowNew((value) => !value)}
                                 aria-label={
                                     showNew
                                         ? "Hide new password"
                                         : "Show new password"
                                 }
                             >
-                                {showNew ? <EyeOff size={20} /> : <Eye size={20} />}
+                                {showNew
+                                    ? <EyeOff size={20} />
+                                    : <Eye size={20} />}
                             </button>
                         </div>
                     </div>
 
-                    <div className="form-group">
+                    <div className="change-password-group">
                         <label htmlFor="confirmPassword">
                             Confirm New Password
                         </label>
 
-                        <div className="password-wrapper">
+                        <div className="change-password-input-wrapper">
                             <input
                                 id="confirmPassword"
                                 type={showConfirm ? "text" : "password"}
@@ -195,36 +197,36 @@ function ChangePassword() {
 
                             <button
                                 type="button"
-                                className="password-toggle"
-                                onClick={() =>
-                                    setShowConfirm((value) => !value)
-                                }
+                                className="change-password-eye"
+                                onClick={() => setShowConfirm((value) => !value)}
                                 aria-label={
                                     showConfirm
                                         ? "Hide confirmation password"
                                         : "Show confirmation password"
                                 }
                             >
-                                {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                                {showConfirm
+                                    ? <EyeOff size={20} />
+                                    : <Eye size={20} />}
                             </button>
                         </div>
                     </div>
 
                     {error && (
-                        <p className="login-error" role="alert">
+                        <p className="change-password-error" role="alert">
                             {error}
                         </p>
                     )}
 
                     {message && (
-                        <p className="login-message" role="status">
+                        <p className="change-password-success" role="status">
                             {message}
                         </p>
                     )}
 
                     <button
                         type="submit"
-                        className="login-button"
+                        className="change-password-submit"
                         disabled={submitting}
                     >
                         {submitting
@@ -235,12 +237,14 @@ function ChangePassword() {
                     {!user?.must_change_password && (
                         <button
                             type="button"
-                            className="login-button"
+                            className="change-password-cancel"
                             onClick={() =>
                                 navigate(
                                     user?.role === "admin"
                                         ? "/admin"
-                                        : "/student"
+                                        : user?.role === "teacher"
+                                            ? "/teacher"
+                                            : "/student"
                                 )
                             }
                             disabled={submitting}

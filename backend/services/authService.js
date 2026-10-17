@@ -9,7 +9,14 @@ const { generateToken } = require("../unils/jwt");
 // LOGIN
 async function loginAuth(username, password) {
     const [users] = await db.execute(
-        `SELECT id, username, password, role, is_active, must_change_password
+        `SELECT
+            id,
+            username,
+            password,
+            role,
+            department_id,
+            is_active,
+            must_change_password
          FROM users
          WHERE username = ?
          LIMIT 1`,
@@ -26,7 +33,10 @@ async function loginAuth(username, password) {
         throw new Error("Your account is inactive");
     }
 
-    const passwordMatch = await comparePassword(password, user.password);
+    const passwordMatch = await comparePassword(
+        password,
+        user.password
+    );
 
     if (!passwordMatch) {
         throw new Error("Invalid username or password");
@@ -40,13 +50,20 @@ async function loginAuth(username, password) {
             id: user.id,
             username: user.username,
             role: user.role,
-            must_change_password: Boolean(user.must_change_password)
+            department_id: user.department_id,
+            must_change_password: Boolean(
+                user.must_change_password
+            )
         }
     };
 }
 
 // CHANGE PASSWORD
-async function changePasswordAuth(userId, currentPassword, newPassword) {
+async function changePasswordAuth(
+    userId,
+    currentPassword,
+    newPassword
+) {
     const [users] = await db.execute(
         `SELECT id, password, is_active
          FROM users

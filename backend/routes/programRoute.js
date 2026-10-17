@@ -3,45 +3,40 @@ const router = express.Router();
 
 const programController = require("../controller/programController");
 const authenticate = require("../middleware/authMiddleware");
-const isAdmin = require("../middleware/roleMiddleware");
+const authorize = require("../middleware/roleMiddleware");
 
-// Get all programs
+// All program routes require authentication.
+router.use(authenticate);
+
+// Admin and Teacher can read programs for their respective workflows.
 router.get(
     "/",
-    authenticate,
- isAdmin("admin"),
+    authorize("admin", "teacher"),
     programController.getAllPrograms
 );
 
-// Get one program
 router.get(
     "/:id",
-    authenticate,
-    isAdmin("admin"),
+    authorize("admin", "teacher"),
     programController.getProgramById
 );
 
-// Create program
+// Only Admin can manage programs.
 router.post(
     "/",
-    authenticate,
-    isAdmin("admin"),
+    authorize("admin"),
     programController.createProgram
 );
 
-// Update program
 router.put(
     "/:id",
-    authenticate,
-    isAdmin,
+    authorize("admin"),
     programController.updateProgram
 );
 
-// Deactivate program
 router.delete(
     "/:id",
-    authenticate,
-    isAdmin("admin"),
+    authorize("admin"),
     programController.deactivateProgram
 );
 

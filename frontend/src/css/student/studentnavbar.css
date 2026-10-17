@@ -1,0 +1,299 @@
+
+/* ============================= */
+/* STUDENT NAVBAR */
+/* ============================= */
+
+.student-navbar {
+    width: 100%;
+    min-height: 64px;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 0 28px;
+
+    background: var(--student-nav-bg, #ffffff);
+    border-bottom: 1px solid var(--student-nav-border, #e5e7eb);
+
+    position: relative;
+    z-index: 100;
+
+    transition: background-color 0.25s ease,
+                border-color 0.25s ease;
+}
+
+/* ============================= */
+/* NAVBAR THEME COLORS ONLY */
+/* ============================= */
+
+html[data-theme="light"] {
+    --student-nav-bg: #ffffff;
+    --student-nav-text: #1f2937;
+    --student-nav-border: #e5e7eb;
+    --student-nav-hover: #f3f4f6;
+}
+
+html[data-theme="dark"] {
+    --student-nav-bg: #111827;
+    --student-nav-text: #f3f4f6;
+    --student-nav-border: #374151;
+    --student-nav-hover: #263244;
+}
+
+/* ============================= */
+/* LOGO AND TITLE */
+/* ============================= */
+
+.student-navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.college-logo {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.student-navbar-left h1 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--student-nav-text, #1f2937);
+}
+
+/* ============================= */
+/* STUDENT PROFILE */
+/* ============================= */
+
+.student-navbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.student-profile {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-right: 4px;
+}
+
+.student-profile-circle {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #2563eb;
+    color: #ffffff;
+
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.student-id {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    color: var(--student-nav-text, #1f2937);
+}
+
+/* ============================= */
+/* NAVBAR ACTION BUTTONS */
+/* ============================= */
+
+.student-navbar-action {
+    min-height: 38px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    padding: 8px 11px;
+
+    border: 1px solid transparent;
+    border-radius: 8px;
+
+    background: transparent;
+    color: var(--student-nav-text, #374151);
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition: background-color 0.2s ease,
+                color 0.2s ease,
+                border-color 0.2s ease;
+}
+
+.student-navbar-action:hover {
+    background: var(--student-nav-hover, #f3f4f6);
+}
+
+.student-navbar-action:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.student-navbar-action svg {
+    flex-shrink: 0;
+}
+
+/* Theme toggle */
+
+.student-navbar-action.theme-toggle {
+    border-color: var(--student-nav-border, #e5e7eb);
+}
+
+/* Logout */
+
+.student-navbar-action.logout-button {
+    color: #dc2626;
+}
+
+.student-navbar-action.logout-button:hover {
+    background: #fef2f2;
+}
+
+/* ============================= */
+/* TABLET */
+/* ============================= */
+
+@media (max-width: 1000px) {
+    .student-navbar {
+        padding: 0 18px;
+        gap: 12px;
+    }
+
+    .student-navbar-left {
+        gap: 10px;
+    }
+
+    .student-navbar-left h1 {
+        font-size: 16px;
+    }
+
+    .student-navbar-actions {
+        gap: 5px;
+    }
+
+    .student-navbar-action {
+        padding: 8px;
+        gap: 6px;
+    }
+
+    .student-id {
+        max-width: 90px;
+    }
+}
+
+/* ============================= */
+/* MOBILE */
+/* ============================= */
+
+@media (max-width: 700px) {
+    .student-navbar {
+        min-height: 64px;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        gap: 10px;
+    }
+
+    .student-navbar-left {
+        flex: 1;
+    }
+
+    .college-logo {
+        width: 36px;
+        height: 36px;
+    }
+
+    .student-navbar-left h1 {
+        font-size: 14px;
+        white-space: normal;
+    }
+
+    .student-navbar-actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .student-profile {
+        margin-right: 0;
+    }
+
+    .student-id {
+        max-width: 100px;
+    }
+
+    .student-navbar-action {
+        flex: 0 1 auto;
+        font-size: 12px;
+        padding: 8px;
+    }
+}
+
+/* ============================= */
+/* SMALL MOBILE */
+/* ============================= */
+
+@media (max-width: 400px) {
+    .student-navbar {
+        padding: 9px 10px;
+    }
+
+    .student-navbar-left h1 {
+        font-size: 13px;
+    }
+
+    .college-logo {
+        width: 32px;
+        height: 32px;
+    }
+
+    .student-profile-circle {
+        width: 32px;
+        height: 32px;
+    }
+
+    .student-id {
+        display: none;
+    }
+
+    .student-navbar-action {
+        gap: 5px;
+        padding: 7px 6px;
+        font-size: 11px;
+    }
+
+    .student-navbar-action svg {
+        width: 16px;
+        height: 16px;
+    }
+}
