@@ -37,4 +37,20 @@ const programRoutes = require("./routes/programRoute");
 app.use("/api/programs", programRoutes);
 
 app.use("/api/departments", departmentRoutes);
+
+const academicYearRoutes = require("./routes/academicYearRoute");
+app.use("/api/academic-years", academicYearRoutes);
+const examInstructionRoute = require("./routes/examInstructionRoute");
+app.use("/api/exam-instructions", examInstructionRoute);
+const examAssignmentRoute = require("./routes/examAssignmentRoute");
+app.use("/api/exam-assignments", examAssignmentRoute);
+const maintenanceRoute = require("./routes/maintenanceRoute");
+
+app.use("/api/maintenance", maintenanceRoute);
+const teacherRoute = require("./routes/teacherRoute");
+app.use("/api/teachers", teacherRoute);
+
+const teacerWorkspace = require("./routes/teacherWorkspaceRoute");
+app.use("/api/teacher-workspace", teacerWorkspace);
+
 module.exports = app;
