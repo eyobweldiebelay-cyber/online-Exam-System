@@ -1,690 +1,644 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     getAllTeachers,
     createTeacher,
-    updateTeacher,
     updateTeacherStatus,
     resetTeacherPassword,
 } from "../services/teacher";
-import { getAllPrograms } from "../services/programService";
-import { getAllDepartments } from "../services/departmentService";
 import "../../css/admin/Teachers.css";
 
-const emptyForm = {
-    username: "",
-    program_id: "",
-    department_id: "",
-};
+function extractList(response) {
+    const data = response?.data ?? response;
 
-function extractList(response, key) {
-    if (Array.isArray(response)) return response;
-    if (Array.isArray(response?.[key])) return response[key];
-    if (Array.isArray(response?.data)) return response.data;
-    if (Array.isArray(response?.data?.[key])) return response.data[key];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.teachers)) return data.teachers;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.data?.teachers)) return data.data.teachers;
+    if (Array.isArray(data?.results)) return data.results;
+
     return [];
 }
 
-function Teachers() {
+/*
+ * Return a teacher's name from common API field names.
+ * Supports camelCase, snake_case, and nested user objects.
+ */
+function getTeacherName(teacher) {
+    const possibleNames = [
+        teacher?.full_name,
+        teacher?.fullName,
+        teacher?.teacher_name,
+        teacher?.teacherName,
+        teacher?.name,
+        teacher?.user?.full_name,
+        teacher?.user?.fullName,
+        teacher?.user?.name,
+        teacher?.user?.username,
+    ];
+
+    const name = possibleNames.find(
+        (value) =>
+            typeof value === "string" &&
+            value.trim() !== ""
+    );
+
+    return name ? name.trim() : "";
+}
+
+function normalizeTeacher(teacher) {
+    return {
+        ...teacher,
+        full_name: getTeacherName(teacher),
+        username: teacher?.username ?? teacher?.user?.username ?? "",
+    };
+}
+
+function getTeacherId(teacher) {
+    return (
+        teacher?.id ??
+        teacher?.user_id ??
+        teacher?.teacher_id ??
+        teacher?.user?.id
+    );
+}
+
+function isTeacherActive(teacher) {
+    if (typeof teacher?.is_active === "boolean") {
+        return teacher.is_active;
+    }
+
+    if (
+        teacher?.is_active !== undefined &&
+        teacher?.is_active !== null
+    ) {
+        return Number(teacher.is_active) === 1;
+    }
+
+    if (typeof teacher?.isActive === "boolean") {
+        return teacher.isActive;
+    }
+
+    if (
+        teacher?.isActive !== undefined &&
+        teacher?.isActive !== null
+    ) {
+        return Number(teacher.isActive) === 1;
+    }
+
+    return String(teacher?.status ?? "").toLowerCase() === "active";
+}
+
+function getErrorMessage(error) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "An unexpected error occurred. Please try again."
+    );
+}
+
+export default function Teachers() {
     const [teachers, setTeachers] = useState([]);
-    const [programs, setPrograms] = useState([]);
-    const [departments, setDepartments] = useState([]);
-    const [form, setForm] = useState(emptyForm);
-    const [editingId, setEditingId] = useState(null);
+    const [fullName, setFullName] = useState("");
+    const [username, setUsername] = useState("");
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
+    const [filter, setFilter] = useState("all");
+
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [resettingTeacherId, setResettingTeacherId] = useState(null);
+    const [creating, setCreating] = useState(false);
+    const [workingId, setWorkingId] = useState(null);
+
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [temporaryPassword, setTemporaryPassword] = useState("");
+    const [copyMessage, setCopyMessage] = useState("");
 
-    const availableDepartments = useMemo(
-        () =>
-            departments.filter(
-                (department) =>
-                    String(department.program_id) === String(form.program_id)
-            ),
-        [departments, form.program_id]
-    );
+    const loadTeachers = useCallback(async () => {
+        setLoading(true);
+        setError("");
+
+        try {
+            const response = await getAllTeachers();
+            const list = extractList(response);
+
+            setTeachers(list.map(normalizeTeacher));
+        } catch (err) {
+            setError(getErrorMessage(err));
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadTeachers();
+    }, [loadTeachers]);
 
     const filteredTeachers = useMemo(() => {
         const term = search.trim().toLowerCase();
 
         return teachers.filter((teacher) => {
             const matchesSearch = [
+                teacher.full_name,
                 teacher.username,
-                teacher.department_name,
-                teacher.program_name,
-            ].some((value) =>
-                String(value || "").toLowerCase().includes(term)
-            );
+                teacher.name,
+            ]
+                .filter(Boolean)
+                .some((value) =>
+                    String(value).toLowerCase().includes(term)
+                );
 
-            const matchesStatus =
-                statusFilter === "all" ||
-                (statusFilter === "active" &&
-                    Number(teacher.is_active) === 1) ||
-                (statusFilter === "inactive" &&
-                    Number(teacher.is_active) === 0);
+            const active = isTeacherActive(teacher);
 
-            return matchesSearch && matchesStatus;
+            const matchesFilter =
+                filter === "all" ||
+                (filter === "active" && active) ||
+                (filter === "inactive" && !active);
+
+            return matchesSearch && matchesFilter;
         });
-    }, [teachers, search, statusFilter]);
+    }, [teachers, search, filter]);
 
-    async function loadData() {
-        setLoading(true);
-        setError("");
+    const activeCount = teachers.filter(isTeacherActive).length;
+    const inactiveCount = teachers.length - activeCount;
 
-        try {
-            const [
-                teacherResponse,
-                programResponse,
-                departmentResponse,
-            ] = await Promise.all([
-                getAllTeachers(),
-                getAllPrograms(),
-                getAllDepartments(),
-            ]);
-
-            setTeachers(extractList(teacherResponse, "teachers"));
-            setPrograms(extractList(programResponse, "programs"));
-            setDepartments(extractList(departmentResponse, "departments"));
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                    "Unable to load teacher management data. Please try again."
-            );
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    function handleFormChange(event) {
-        const { name, value } = event.target;
-
-        setForm((previous) => ({
-            ...previous,
-            [name]: value,
-            ...(name === "program_id" ? { department_id: "" } : {}),
-        }));
-    }
-
-    function resetForm() {
-        setForm(emptyForm);
-        setEditingId(null);
-        setError("");
-        setSuccess("");
-    }
-
-    function startEditing(teacher) {
-        setEditingId(teacher.user_id);
-
-        setForm({
-            username: teacher.username || "",
-            program_id: String(teacher.program_id || ""),
-            department_id: String(teacher.department_id || ""),
-        });
-
-        setTemporaryPassword("");
-        setError("");
-        setSuccess("");
-
-        document
-            .querySelector(".teacher-management__form-card")
-            ?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-            });
-    }
-
-    async function handleSubmit(event) {
+    const handleCreate = async (event) => {
         event.preventDefault();
-        setError("");
-        setSuccess("");
-        setTemporaryPassword("");
 
-        if (
-            !form.program_id ||
-            !form.department_id ||
-            !form.username.trim()
-        ) {
-            setError("Username, program, and department are required.");
+        const cleanName = fullName.trim();
+        const cleanUsername = username.trim();
+
+        if (!cleanName || !cleanUsername) {
+            setError(
+                "Please enter the teacher's full name and username."
+            );
             return;
         }
 
-        setSaving(true);
+        setCreating(true);
+        setError("");
+        setSuccess("");
+        setTemporaryPassword("");
+        setCopyMessage("");
 
         try {
-            const payload = {
-                username: form.username.trim(),
-                program_id: Number(form.program_id),
-                department_id: Number(form.department_id),
-            };
+            const response = await createTeacher({
+                full_name: cleanName,
+                username: cleanUsername,
+            });
 
-            if (editingId) {
-                await updateTeacher(editingId, payload);
-                setSuccess("Teacher account updated successfully.");
+            const data = response?.data ?? response;
+
+            setFullName("");
+            setUsername("");
+
+            setSuccess(
+                data?.message || "Teacher account created successfully."
+            );
+
+            if (data?.temporary_password) {
+                setTemporaryPassword(data.temporary_password);
             } else {
-                const response = await createTeacher(payload);
-
-                setTemporaryPassword(
-                    response.temporary_password || ""
-                );
-
                 setSuccess(
-                    response.message ||
-                        "Teacher account created successfully."
+                    (data?.message ||
+                        "Teacher account created successfully.") +
+                    " However, the API did not return a temporary password."
                 );
             }
 
-            setForm(emptyForm);
-            setEditingId(null);
-
-            await loadData();
+            await loadTeachers();
         } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                    "Unable to save the teacher account."
-            );
+            setError(getErrorMessage(err));
         } finally {
-            setSaving(false);
+            setCreating(false);
         }
-    }
+    };
 
-    async function handleStatusChange(teacher) {
-        const currentlyActive = Number(teacher.is_active) === 1;
-        const nextStatus = !currentlyActive;
-
-        const confirmed = window.confirm(
-            `${nextStatus ? "Activate" : "Deactivate"} the account for "${teacher.username}"?`
-        );
-
-        if (!confirmed) return;
-
-        setError("");
-        setSuccess("");
-        setTemporaryPassword("");
+    const handleCopyPassword = async () => {
+        if (!temporaryPassword) return;
 
         try {
-            const response = await updateTeacherStatus(
-                teacher.user_id,
-                nextStatus
-            );
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(temporaryPassword);
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = temporaryPassword;
+                textArea.style.position = "fixed";
+                textArea.style.opacity = "0";
 
-            setSuccess(
-                response.message ||
-                    `Teacher account ${nextStatus ? "activated" : "deactivated"} successfully.`
-            );
+                document.body.appendChild(textArea);
+                textArea.select();
 
-            await loadData();
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                    "Unable to update the teacher account status."
-            );
-        }
-    }
+                const copied = document.execCommand("copy");
+                document.body.removeChild(textArea);
 
-    async function handleResetPassword(teacher) {
-        const confirmed = window.confirm(
-            `Reset the password for "${teacher.username}"?\n\n` +
-                "A new temporary password will be generated. " +
-                "The teacher will need to change it after logging in."
-        );
-
-        if (!confirmed) return;
-
-        setError("");
-        setSuccess("");
-        setTemporaryPassword("");
-        setResettingTeacherId(teacher.user_id);
-
-        try {
-            const response = await resetTeacherPassword(
-                teacher.user_id
-            );
-
-            if (!response.temporary_password) {
-                throw new Error(
-                    "The server did not return a temporary password."
-                );
+                if (!copied) {
+                    throw new Error("Copy failed");
+                }
             }
 
-            setTemporaryPassword(response.temporary_password);
-
-            setSuccess(
-                response.message ||
-                    `Password reset successfully for ${teacher.username}.`
-            );
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                    err.message ||
-                    "Unable to reset the teacher password."
-            );
-        } finally {
-            setResettingTeacherId(null);
-        }
-    }
-
-    async function copyTemporaryPassword() {
-        try {
-            await navigator.clipboard.writeText(temporaryPassword);
-            setSuccess("Temporary password copied to clipboard.");
+            setCopyMessage("Password copied.");
         } catch {
-            setError(
-                "Unable to copy automatically. Select and copy the password manually."
+            setCopyMessage(
+                "Copy failed. Please select and copy the password manually."
             );
         }
-    }
+    };
+
+    const handleStatusChange = async (teacher) => {
+        const id = getTeacherId(teacher);
+
+        if (!id) {
+            setError("Unable to identify this teacher account.");
+            return;
+        }
+
+        const currentlyActive = isTeacherActive(teacher);
+        const action = currentlyActive ? "deactivate" : "activate";
+
+        const teacherLabel =
+            getTeacherName(teacher) ||
+            teacher.username ||
+            "this teacher";
+
+        if (
+            !window.confirm(
+                `Are you sure you want to ${action} ${teacherLabel}?`
+            )
+        ) {
+            return;
+        }
+
+        setWorkingId(id);
+        setError("");
+        setSuccess("");
+        setTemporaryPassword("");
+        setCopyMessage("");
+
+        try {
+            await updateTeacherStatus(id, !currentlyActive);
+
+            setSuccess(
+                `Teacher account ${action}d successfully.`
+            );
+
+            await loadTeachers();
+        } catch (err) {
+            setError(getErrorMessage(err));
+        } finally {
+            setWorkingId(null);
+        }
+    };
+
+    const handleResetPassword = async (teacher) => {
+        const id = getTeacherId(teacher);
+
+        if (!id) {
+            setError("Unable to identify this teacher account.");
+            return;
+        }
+
+        const teacherLabel =
+            getTeacherName(teacher) ||
+            teacher.username ||
+            "this teacher";
+
+        if (
+            !window.confirm(
+                `Generate a new temporary password for ${teacherLabel}?`
+            )
+        ) {
+            return;
+        }
+
+        setWorkingId(id);
+        setError("");
+        setSuccess("");
+        setTemporaryPassword("");
+        setCopyMessage("");
+
+        try {
+            const response = await resetTeacherPassword(id);
+            const data = response?.data ?? response;
+
+            setSuccess(
+                data?.message || "Teacher password reset successfully."
+            );
+
+            if (data?.temporary_password) {
+                setTemporaryPassword(data.temporary_password);
+            } else {
+                setSuccess(
+                    (data?.message ||
+                        "Teacher password reset successfully.") +
+                    " However, the API did not return a temporary password."
+                );
+            }
+        } catch (err) {
+            setError(getErrorMessage(err));
+        } finally {
+            setWorkingId(null);
+        }
+    };
 
     return (
-        <div className="teacher-management">
-            <section className="teacher-management__stats">
-                <article className="teacher-management__stat">
-                    <div className="teacher-management__stat-icon teacher-management__stat-icon--blue">
-                        <span aria-hidden="true">♙</span>
-                    </div>
-                    <div>
-                        <span>Total teachers</span>
-                        <strong>{teachers.length}</strong>
-                    </div>
+        <section className="admin-teachers-page">
+            <header className="admin-teachers-header">
+                <div>
+                    <p className="admin-teachers-eyebrow">
+                        ADMINISTRATION
+                    </p>
+
+                    <h1>Teacher Account Management</h1>
+
+                    <p>
+                        Create teacher login credentials and manage account
+                        access. Academic assignments are handled by the
+                        Academic Dean.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    className="teacher-refresh-button"
+                    onClick={loadTeachers}
+                    disabled={loading}
+                >
+                    {loading ? "Refreshing..." : "Refresh"}
+                </button>
+            </header>
+
+            <div className="teacher-summary-grid">
+                <article className="teacher-summary-card">
+                    <span>Total teacher accounts</span>
+                    <strong>{teachers.length}</strong>
                 </article>
 
-                <article className="teacher-management__stat">
-                    <div className="teacher-management__stat-icon teacher-management__stat-icon--green">
-                        <span aria-hidden="true">✓</span>
-                    </div>
-                    <div>
-                        <span>Active accounts</span>
-                        <strong>
-                            {
-                                teachers.filter(
-                                    (teacher) =>
-                                        Number(teacher.is_active) === 1
-                                ).length
-                            }
-                        </strong>
-                    </div>
+                <article className="teacher-summary-card">
+                    <span>Active accounts</span>
+                    <strong>{activeCount}</strong>
                 </article>
 
-                <article className="teacher-management__stat">
-                    <div className="teacher-management__stat-icon teacher-management__stat-icon--orange">
-                        <span aria-hidden="true">−</span>
-                    </div>
-                    <div>
-                        <span>Inactive accounts</span>
-                        <strong>
-                            {
-                                teachers.filter(
-                                    (teacher) =>
-                                        Number(teacher.is_active) === 0
-                                ).length
-                            }
-                        </strong>
-                    </div>
+                <article className="teacher-summary-card">
+                    <span>Inactive accounts</span>
+                    <strong>{inactiveCount}</strong>
                 </article>
-            </section>
+            </div>
 
             {error && (
                 <div
-                    className="teacher-management__alert teacher-management__alert--error"
+                    className="teacher-alert teacher-alert-error"
                     role="alert"
                 >
                     {error}
-                    <button
-                        type="button"
-                        onClick={() => setError("")}
-                        aria-label="Dismiss error"
-                    >
-                        ×
-                    </button>
                 </div>
             )}
 
             {success && (
                 <div
-                    className="teacher-management__alert teacher-management__alert--success"
+                    className="teacher-alert teacher-alert-success"
                     role="status"
                 >
                     {success}
-                    <button
-                        type="button"
-                        onClick={() => setSuccess("")}
-                        aria-label="Dismiss message"
-                    >
-                        ×
-                    </button>
                 </div>
             )}
 
             {temporaryPassword && (
-                <section
-                    className="teacher-management__password"
-                    aria-live="polite"
-                >
-                    <div>
-                        <strong>Temporary password</strong>
-                        <p>
-                            Share this password securely with the teacher.
-                            For security, it will not be shown again after
-                            you leave this message or reset another password.
-                        </p>
-                    </div>
+                <div className="teacher-temporary-password">
+                    <strong>Temporary password</strong>
 
-                    <code>{temporaryPassword}</code>
+                    <p>
+                        Share these credentials securely with the teacher.
+                        The teacher should change this password after
+                        signing in.
+                    </p>
 
-                    <button
-                        type="button"
-                        onClick={copyTemporaryPassword}
-                    >
-                        Copy password
-                    </button>
-                </section>
-            )}
+                    <div className="teacher-password-copy-row">
+                        <code>{temporaryPassword}</code>
 
-            <section className="teacher-management__form-card">
-                <div className="teacher-management__section-heading">
-                    <div>
-                        <h2>
-                            {editingId
-                                ? "Edit teacher account"
-                                : "Add a teacher"}
-                        </h2>
-                        <p>
-                            {editingId
-                                ? "Update the username and department assignment."
-                                : "Create a teacher login and assign an academic department."}
-                        </p>
-                    </div>
-
-                    {editingId && (
                         <button
                             type="button"
-                            className="teacher-management__button teacher-management__button--secondary"
-                            onClick={resetForm}
+                            onClick={handleCopyPassword}
                         >
-                            Cancel edit
+                            Copy password
                         </button>
+                    </div>
+
+                    {copyMessage && (
+                        <p
+                            role="status"
+                            className="teacher-copy-message"
+                        >
+                            {copyMessage}
+                        </p>
                     )}
                 </div>
+            )}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="teacher-management__form-grid">
-                        <label>
+            <div className="teacher-management-grid">
+                <section className="teacher-panel">
+                    <h2>Create Teacher Account</h2>
+
+                    <p className="teacher-panel-description">
+                        Enter the teacher's name and username. A temporary
+                        password is generated by the account API.
+                    </p>
+
+                    <form onSubmit={handleCreate}>
+                        <label htmlFor="teacher-full-name">
+                            Teacher full name
+                        </label>
+
+                        <input
+                            id="teacher-full-name"
+                            type="text"
+                            value={fullName}
+                            onChange={(event) =>
+                                setFullName(event.target.value)
+                            }
+                            placeholder="Enter teacher's full name"
+                            autoComplete="name"
+                            required
+                        />
+
+                        <label htmlFor="teacher-username">
                             Username
-                            <input
-                                name="username"
-                                value={form.username}
-                                onChange={handleFormChange}
-                                placeholder="Enter teacher username"
-                                autoComplete="off"
-                                required
-                            />
                         </label>
 
-                        <label>
-                            Program
-                            <select
-                                name="program_id"
-                                value={form.program_id}
-                                onChange={handleFormChange}
-                                required
-                            >
-                                <option value="">Select program</option>
-                                {programs.map((program) => (
-                                    <option
-                                        key={program.id}
-                                        value={program.id}
-                                    >
-                                        {program.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        <input
+                            id="teacher-username"
+                            type="text"
+                            value={username}
+                            onChange={(event) =>
+                                setUsername(event.target.value)
+                            }
+                            placeholder="Enter teacher username"
+                            autoComplete="off"
+                            required
+                        />
 
-                        <label>
-                            Department
-                            <select
-                                name="department_id"
-                                value={form.department_id}
-                                onChange={handleFormChange}
-                                required
-                                disabled={!form.program_id}
-                            >
-                                <option value="">Select department</option>
-                                {availableDepartments.map((department) => (
-                                    <option
-                                        key={department.id}
-                                        value={department.id}
-                                    >
-                                        {department.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
-
-                    <div className="teacher-management__form-actions">
                         <button
                             type="submit"
-                            className="teacher-management__button teacher-management__button--primary"
-                            disabled={saving}
+                            className="teacher-primary-button"
+                            disabled={creating}
                         >
-                            {saving
-                                ? "Saving..."
-                                : editingId
-                                  ? "Save changes"
-                                  : "Create teacher"}
+                            {creating
+                                ? "Creating account..."
+                                : "Create Teacher Account"}
                         </button>
+                    </form>
+                </section>
 
-                        {!editingId && (
-                            <button
-                                type="button"
-                                className="teacher-management__button teacher-management__button--secondary"
-                                onClick={resetForm}
-                            >
-                                Clear form
-                            </button>
-                        )}
+                <section className="teacher-panel teacher-list-panel">
+                    <div className="teacher-list-heading">
+                        <div>
+                            <h2>Teacher Accounts</h2>
+
+                            <p className="teacher-panel-description">
+                                Search teachers, reset passwords, or
+                                manage access.
+                            </p>
+                        </div>
+
+                        <span className="teacher-count">
+                            {filteredTeachers.length} shown
+                        </span>
                     </div>
-                </form>
-            </section>
 
-            <section className="teacher-management__list-card">
-                <div className="teacher-management__section-heading teacher-management__list-heading">
-                    <div>
-                        <h2>Teacher accounts</h2>
-                        <p>
-                            Manage teacher access, department assignments,
-                            and password resets.
+                    <div className="teacher-toolbar">
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={(event) =>
+                                setSearch(event.target.value)
+                            }
+                            placeholder="Search name or username..."
+                            aria-label="Search teacher accounts"
+                        />
+
+                        <select
+                            value={filter}
+                            onChange={(event) =>
+                                setFilter(event.target.value)
+                            }
+                            aria-label="Filter teacher accounts"
+                        >
+                            <option value="all">All accounts</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+
+                    {loading ? (
+                        <p className="teacher-empty-state">
+                            Loading teacher accounts...
                         </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="teacher-management__button teacher-management__button--secondary"
-                        onClick={loadData}
-                        disabled={loading}
-                    >
-                        ↻ Refresh
-                    </button>
-                </div>
-
-                <div className="teacher-management__filters">
-                    <input
-                        type="search"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search username, program, or department..."
-                        aria-label="Search teachers"
-                    />
-
-                    <select
-                        value={statusFilter}
-                        onChange={(event) =>
-                            setStatusFilter(event.target.value)
-                        }
-                        aria-label="Filter by account status"
-                    >
-                        <option value="all">All accounts</option>
-                        <option value="active">Active only</option>
-                        <option value="inactive">Inactive only</option>
-                    </select>
-                </div>
-
-                {loading ? (
-                    <div className="teacher-management__empty">
-                        Loading teacher accounts...
-                    </div>
-                ) : filteredTeachers.length === 0 ? (
-                    <div className="teacher-management__empty">
-                        <strong>No teacher accounts found</strong>
-                        <p>
-                            Try changing your search, or create a teacher
-                            account above.
+                    ) : filteredTeachers.length === 0 ? (
+                        <p className="teacher-empty-state">
+                            No teacher accounts found.
                         </p>
-                    </div>
-                ) : (
-                    <div className="teacher-management__table-wrap">
-                        <table className="teacher-management__table">
-                            <thead>
-                                <tr>
-                                    <th>Teacher</th>
-                                    <th>Program</th>
-                                    <th>Department</th>
-                                    <th>Account status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
+                    ) : (
+                        <div className="teacher-table-wrapper">
+                            <table className="teacher-table">
+                                <thead>
+                                    <tr>
+                                        <th>Teacher name</th>
+                                        <th>Username</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
 
-                            <tbody>
-                                {filteredTeachers.map((teacher) => {
-                                    const active =
-                                        Number(teacher.is_active) === 1;
+                                <tbody>
+                                    {filteredTeachers.map((teacher) => {
+                                        const id = getTeacherId(teacher);
+                                        const active =
+                                            isTeacherActive(teacher);
 
-                                    const resetting =
-                                        resettingTeacherId === teacher.user_id;
+                                        const teacherName =
+                                            getTeacherName(teacher) ||
+                                            "Name not provided";
 
-                                    return (
-                                        <tr key={teacher.user_id}>
-                                            <td>
-                                                <div className="teacher-management__user">
-                                                    <span className="teacher-management__user-avatar">
-                                                        {(teacher.username || "T")
-                                                            .charAt(0)
-                                                            .toUpperCase()}
-                                                    </span>
+                                        return (
+                                            <tr
+                                                key={
+                                                    id ?? teacher.username
+                                                }
+                                            >
+                                                <td>
+                                                    <strong>
+                                                        {teacherName}
+                                                    </strong>
+                                                </td>
 
-                                                    <div>
-                                                        <strong>
-                                                            {teacher.username}
-                                                        </strong>
-                                                        <span>
-                                                            ID: {teacher.user_id}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
+                                                <td>
+                                                    {teacher.username || "—"}
+                                                </td>
 
-                                            <td>
-                                                {teacher.program_name || "—"}
-                                            </td>
-
-                                            <td>
-                                                {teacher.department_name ||
-                                                    "Unassigned"}
-                                            </td>
-
-                                            <td>
-                                                <span
-                                                    className={`teacher-management__status ${
-                                                        active
-                                                            ? "is-active"
-                                                            : "is-inactive"
-                                                    }`}
-                                                >
-                                                    <span />
-                                                    {active
-                                                        ? "Active"
-                                                        : "Inactive"}
-                                                </span>
-                                            </td>
-
-                                            <td>
-                                                <div className="teacher-management__actions">
-                                                    <button
-                                                        type="button"
-                                                        className="teacher-management__action"
-                                                        onClick={() =>
-                                                            startEditing(teacher)
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        className={`teacher-management__action ${
+                                                <td>
+                                                    <span
+                                                        className={`teacher-status ${
                                                             active
-                                                                ? "is-danger"
-                                                                : "is-success"
+                                                                ? "is-active"
+                                                                : "is-inactive"
                                                         }`}
-                                                        onClick={() =>
-                                                            handleStatusChange(
-                                                                teacher
-                                                            )
-                                                        }
                                                     >
                                                         {active
-                                                            ? "Deactivate"
-                                                            : "Activate"}
-                                                    </button>
+                                                            ? "Active"
+                                                            : "Inactive"}
+                                                    </span>
+                                                </td>
 
-                                                    <button
-                                                        type="button"
-                                                        className="teacher-management__action"
-                                                        onClick={() =>
-                                                            handleResetPassword(
-                                                                teacher
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            resetting ||
-                                                            !active
-                                                        }
-                                                        title={
-                                                            !active
-                                                                ? "Activate this teacher account before resetting its password."
-                                                                : "Generate a new temporary password."
-                                                        }
-                                                    >
-                                                        {resetting
-                                                            ? "Resetting..."
-                                                            : "Reset Password"}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                                <td>
+                                                    <div className="teacher-row-actions">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleStatusChange(
+                                                                    teacher
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                workingId === id
+                                                            }
+                                                            className={
+                                                                active
+                                                                    ? "teacher-action-danger"
+                                                                    : "teacher-action-success"
+                                                            }
+                                                        >
+                                                            {workingId === id
+                                                                ? "Please wait..."
+                                                                : active
+                                                                  ? "Deactivate"
+                                                                  : "Activate"}
+                                                        </button>
 
-                <div className="teacher-management__list-footer">
-                    Showing {filteredTeachers.length} of {teachers.length}{" "}
-                    teacher accounts
-                </div>
-            </section>
-        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="teacher-action-neutral"
+                                                            onClick={() =>
+                                                                handleResetPassword(
+                                                                    teacher
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                workingId === id
+                                                            }
+                                                        >
+                                                            Reset password
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </section>
+            </div>
+        </section>
     );
 }
-
-export default Teachers;

@@ -13,27 +13,35 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import PublicLayout from "./layouts/PublicLayout";
 import StudentLayout from "./layouts/StudentLayoute";
-import AdminLayout from "./layouts/AdminLayout";
+import AcademicDeanLayout from "./layouts/AcademicDeanLayout";
 import TeacherLayout from "./layouts/TeacherLayout";
+import AdminLayout from "./layouts/AdminLayout";
 
+// Student pages
 import AvailableExams from "./pages/student/AvailableExams";
 import ExamInstructions from "./pages/student/ExamInstraction";
 import TakeExam from "./pages/student/TakeExam";
 import Result from "./pages/student/Result";
 
-import AdminDashboard from "./pages/admin/Dashboard";
-import Exams from "./pages/admin/Exam";
-import ExamForm from "./pages/admin/ExamForm";
-import ExamQuestions from "./pages/admin/ExamQuestions";
-import AdminQuestions from "./pages/admin/Question";
-import QuestionForm from "./pages/admin/QuestionForm";
-import Programs from "./pages/admin/Programs";
-import Department from "./pages/admin/Departments";
-import ResultAdmin from "./pages/admin/ResultAdmin";
-import Students from "./pages/admin/Students";
+// Academic Dean pages
+import AdminDashboard from "./pages/Academicdean/Dashboard";
+import Exams from "./pages/Academicdean/Exam";
+import ExamForm from "./pages/Academicdean/ExamForm";
+import ExamQuestions from "./pages/Academicdean/ExamQuestions";
+import AdminQuestions from "./pages/Academicdean/Question";
+import QuestionForm from "./pages/Academicdean/QuestionForm";
+import Programs from "./pages/Academicdean/Programs";
+import Department from "./pages/Academicdean/Departments";
+import ResultAdmin from "./pages/Academicdean/ResultAdmin";
+import Students from "./pages/Academicdean/Students";
 import StudentImport from "./pages/admin/StudentImport";
+import TeacherAssignments from "./pages/Academicdean/TeacherAssignments";
+
+// Admin pages
+import AdminSystemDashboard from "./pages/admin/Dashboard";
+import TeacherManagement from "./pages/admin/Teachers";
+import AcademicDeans from "./pages/admin/AcademicDeans";
 import MaintenanceControl from "./components/MaintenanceControl";
-import Teachers from "./pages/admin/Teachers";
 
 // Teacher pages
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
@@ -48,6 +56,7 @@ import LandingPage from "./components/Loanding";
 
 function ExamEditRoute() {
     const { examId } = useParams();
+
     return <ExamForm examId={examId} />;
 }
 
@@ -55,23 +64,105 @@ function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Public pages share one navbar */}
+                {/* Public pages */}
                 <Route element={<PublicLayout />}>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/login" element={<Login />} />
+                    <Route
+                        path="/"
+                        element={<LandingPage />}
+                    />
+
+                    <Route
+                        path="/login"
+                        element={<Login />}
+                    />
                 </Route>
 
-                {/* Password change - Teacher keeps navbar and sidebar */}
-                <Route element={<ProtectedRoute allowedRoles={["teacher"]} />}>
-                    <Route path="/change-password" element={<TeacherLayout />}>
-                        <Route index element={<ChangePassword />} />
+                {/* Password change for all authenticated roles */}
+                <Route
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={[
+                                "admin",
+                                "academic_dean",
+                                "teacher",
+                                "student",
+                            ]}
+                        />
+                    }
+                >
+                    <Route
+                        path="/change-password"
+                        element={<ChangePassword />}
+                    />
+                </Route>
+
+                {/* Admin routes */}
+                <Route
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={["admin"]}
+                        />
+                    }
+                >
+                    <Route
+                        path="/admin"
+                        element={<AdminLayout />}
+                    >
+                        {/* Default Admin page */}
+                        <Route
+                            index
+                            element={<AdminSystemDashboard />}
+                        />
+
+                        {/* Explicit Dashboard URL */}
+                        <Route
+                            path="dashboard"
+                            element={<AdminSystemDashboard />}
+                        />
+
+                        <Route
+                            path="students"
+                            element={<Students />}
+                        />
+
+                        <Route
+                            path="student-import"
+                            element={<StudentImport />}
+                        />
+
+                        <Route
+                            path="teachers"
+                            element={<TeacherManagement />}
+                        />
+
+                        <Route
+                            path="academic-deans"
+                            element={<AcademicDeans />}
+                        />
+
+                        <Route
+                            path="maintenance"
+                            element={<MaintenanceControl />}
+                        />
                     </Route>
                 </Route>
 
                 {/* Student routes */}
-                <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
-                    <Route path="/student" element={<StudentLayout />}>
-                        <Route index element={<AvailableExams />} />
+                <Route
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={["student"]}
+                        />
+                    }
+                >
+                    <Route
+                        path="/student"
+                        element={<StudentLayout />}
+                    >
+                        <Route
+                            index
+                            element={<AvailableExams />}
+                        />
 
                         <Route
                             path="exam/:examId/instructions"
@@ -90,22 +181,43 @@ function App() {
                     />
                 </Route>
 
-                {/* Admin routes */}
-                <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-                    <Route path="/admin" element={<AdminLayout />}>
-                        <Route index element={<AdminDashboard />} />
+                {/* Academic Dean routes */}
+                <Route
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={["academic_dean"]}
+                        />
+                    }
+                >
+                    <Route
+                        path="/academic-dean"
+                        element={<AcademicDeanLayout />}
+                    >
+                        <Route
+                            index
+                            element={<AdminDashboard />}
+                        />
 
-                        <Route path="programs" element={<Programs />} />
-                        <Route path="departements" element={<Department />} />
+                        <Route
+                            path="programs"
+                            element={<Programs />}
+                        />
 
-                        <Route path="students" element={<Students />} />
+                        <Route
+                            path="departements"
+                            element={<Department />}
+                        />
+
+                        <Route
+                            path="students"
+                            element={<Students />}
+                        />
 
                         <Route
                             path="student-import"
                             element={<StudentImport />}
                         />
 
-                        {/* Admin Question Management */}
                         <Route
                             path="questions"
                             element={<AdminQuestions />}
@@ -121,8 +233,10 @@ function App() {
                             element={<QuestionForm />}
                         />
 
-                        {/* Exam Management */}
-                        <Route path="exams" element={<Exams />} />
+                        <Route
+                            path="exams"
+                            element={<Exams />}
+                        />
 
                         <Route
                             path="exams/create"
@@ -139,9 +253,15 @@ function App() {
                             element={<ExamQuestions />}
                         />
 
-                        <Route path="teachers" element={<Teachers />} />
+                        <Route
+                            path="teachers"
+                            element={<TeacherAssignments />}
+                        />
 
-                        <Route path="results" element={<ResultAdmin />} />
+                        <Route
+                            path="results"
+                            element={<ResultAdmin />}
+                        />
 
                         <Route
                             path="MaintenanceControl"
@@ -151,9 +271,21 @@ function App() {
                 </Route>
 
                 {/* Teacher routes */}
-                <Route element={<ProtectedRoute allowedRoles={["teacher"]} />}>
-                    <Route path="/teacher" element={<TeacherLayout />}>
-                        <Route index element={<TeacherDashboard />} />
+                <Route
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={["teacher"]}
+                        />
+                    }
+                >
+                    <Route
+                        path="/teacher"
+                        element={<TeacherLayout />}
+                    >
+                        <Route
+                            index
+                            element={<TeacherDashboard />}
+                        />
 
                         <Route
                             path="students"

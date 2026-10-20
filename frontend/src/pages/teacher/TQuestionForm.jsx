@@ -1,5 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Download, Upload } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 import {
@@ -247,6 +249,69 @@ function TeacherQuestionForm() {
         );
     };
 
+    // Download the CSV template.
+    const handleDownloadTemplate = () => {
+        const headers = [
+            "Question",
+            "Option A",
+            "Option B",
+            "Option C",
+            "Option D",
+            "Correct Answer",
+            "Marks"
+        ];
+
+        const csvContent =
+            "\uFEFF" +
+            headers.map((header) => `"${header}"`).join(",") +
+            "\r\n";
+
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;"
+        });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = "Teacher_Question_Import_Template.csv";
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        URL.revokeObjectURL(url);
+    };
+
+    // Validate the selected file before importing.
+    const handleImportFileChange = (event) => {
+        const file = event.target.files?.[0] || null;
+
+        setError("");
+        setImportResult(null);
+
+        if (!file) {
+            setImportFile(null);
+            return;
+        }
+
+        if (!/\.(csv|xlsx)$/i.test(file.name)) {
+            setImportFile(null);
+            event.target.value = "";
+            setError("Only CSV and Excel (.xlsx) files are supported.");
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            setImportFile(null);
+            event.target.value = "";
+            setError("Maximum file size is 5 MB.");
+            return;
+        }
+
+        setImportFile(file);
+    };
+
     const handleImport = async (event) => {
         event.preventDefault();
         setError("");
@@ -272,12 +337,17 @@ function TeacherQuestionForm() {
         }
 
         if (!importFile) {
-            setError("Please select an Excel or CSV file.");
+            setError("Please select a CSV or Excel (.xlsx) file.");
             return;
         }
 
-        if (!/\.(csv|xlsx|xls)$/i.test(importFile.name)) {
-            setError("Only CSV, XLSX, and XLS files are supported.");
+        if (!/\.(csv|xlsx)$/i.test(importFile.name)) {
+            setError("Only CSV and XLSX files are supported.");
+            return;
+        }
+
+        if (importFile.size > 5 * 1024 * 1024) {
+            setError("Maximum file size is 5 MB.");
             return;
         }
 
@@ -520,43 +590,54 @@ function TeacherQuestionForm() {
                         </div>
                     </section>
 
-                    <section className="teacher-form-section">
-                        <h2>Excel or CSV File</h2>
+                    <section className="teacher-form-section teacher-upload-section">
+                        <h2>Upload question list</h2>
+
+                        <p className="teacher-upload-description">
+                            Supported formats: CSV and Excel (.xlsx)
+                        </p>
+
+                        <button
+                            type="button"
+                            className="teacher-template-link"
+                            onClick={handleDownloadTemplate}
+                            disabled={saving}
+                        >
+                            <Download size={16} />
+                            Download CSV template
+                        </button>
 
                         <div className="teacher-field">
                             <label htmlFor="teacher-import-file">
-                                Select spreadsheet
+                                Choose a question list file
+                            </label>
+
+                            <label
+                                htmlFor="teacher-import-file"
+                                className="teacher-file-dropzone"
+                            >
+                                <Upload size={28} />
+
+                                <span>
+                                    {importFile
+                                        ? importFile.name
+                                        : "Click here to select a .csv or .xlsx file"}
+                                </span>
+
+                                <small>
+                                    Maximum file size: 5 MB
+                                </small>
                             </label>
 
                             <input
                                 id="teacher-import-file"
                                 type="file"
-                                accept=".csv,.xlsx,.xls"
-                                onChange={(event) => {
-                                    setImportFile(
-                                        event.target.files?.[0] || null
-                                    );
-                                    setImportResult(null);
-                                    setError("");
-                                }}
+                                accept=".csv,.xlsx"
+                                className="teacher-hidden-file-input"
+                                onChange={handleImportFileChange}
                                 disabled={saving}
                                 required
                             />
-
-                            <p>
-                                Supported formats: CSV, XLSX, and XLS.
-                                Each row should contain the question,
-                                four answer options, the correct answer,
-                                and marks.
-                            </p>
-                        </div>
-
-                        <div className="teacher-field">
-                            <h3>Required Spreadsheet Columns</h3>
-                            <p>
-                                Question, Option A, Option B, Option C,
-                                Option D, Correct Answer, Marks
-                            </p>
                         </div>
                     </section>
 
@@ -597,7 +678,8 @@ function TeacherQuestionForm() {
                                 academicYears.length === 0
                             }
                         >
-                            {saving ? "Importing..." : "Import Questions"}
+                            <Upload size={17} />
+                            {saving ? "Importing..." : "Upload and import"}
                         </button>
                     </footer>
                 </form>

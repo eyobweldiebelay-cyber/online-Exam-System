@@ -1,8 +1,10 @@
+
 const express = require("express");
 
 const {
     addQuestionsToExam,
-    getExamQuestions
+    getExamQuestions,
+    getAvailableQuestions
 } = require("../controller/examQuestionController");
 
 const authenticate = require("../middleware/authMiddleware");
@@ -10,19 +12,27 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-// Admin: assign questions to an exam
+// Academic Dean: get available questions for an exam
+router.get(
+    "/:examId/available-questions",
+    authenticate,
+    roleMiddleware("academic_dean"),
+    getAvailableQuestions
+);
+
+// Academic Dean: assign questions to an exam
 router.post(
     "/:examId/questions",
     authenticate,
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     addQuestionsToExam
 );
 
-// Admin: view questions assigned to an exam
+// Academic Dean: view questions assigned to an exam
 router.get(
     "/:examId/questions",
     authenticate,
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     getExamQuestions
 );
 

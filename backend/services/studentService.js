@@ -525,6 +525,73 @@ async function importStudents(rows) {
 }
 
 // ==========================================
+// RESET STUDENT PASSWORD (ADMIN ONLY VIA ROUTE)
+// ==========================================
+
+async function resetStudentPassword(studentId) {
+    const id = Number(studentId);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Error("Invalid student ID");
+    }
+
+    // Confirm that this student has a linked student user account.
+    const [students] = await db.execute(
+        `SELECT
+            s.id AS student_record_id,
+            s.student_id,
+            u.id AS user_id
+         FROM students s
+         INNER JOIN users u ON u.id = s.user_id
+         WHERE s.id = ? AND u.role = 'student'
+         LIMIT 1`,
+        [id]
+    );
+
+    if (students.length === 0) {
+        throw new Error("Student account not found");
+    }
+
+    const student = students[0];
+
+    // Generate a new temporary password.
+    const temporaryPassword =
+        `Stu@${crypto.randomBytes(6).toString("hex")}A1`;
+
+    const hashedPassword = await hashPassword(temporaryPassword);
+
+    // Update only this student's linked user account.
+    const [result] = await db.execute(
+        `UPDATE users
+         SET password = ?, must_change_password = 1
+         WHERE id = ? AND role = 'student'`,
+        [hashedPassword, student.user_id]
+    );
+
+    if (result.affectedRows !== 1) {
+        throw new Error("Failed to reset student password");
+    }
+
+    return {
+        message: "Student password reset successfully",
+        student_record_id: student.student_record_id,
+        student_id: student.student_id,
+        user_id: student.user_id,
+        temporary_password: temporaryPassword
+    };
+}
+
+
+async function getStudentCount() {
+    const [rows] = await db.execute(
+        "SELECT COUNT(*) AS total FROM students"
+    );
+
+    return Number(rows[0].total);
+}
+
+
+// ==========================================
 // EXPORT SERVICES
 // ==========================================
 
@@ -535,5 +602,7 @@ module.exports = {
     updateStudent,
     updateStudentStatus,
     changeStudentPassword,
-    importStudents
+    importStudents,
+    getStudentCount,
+    resetStudentPassword
 };

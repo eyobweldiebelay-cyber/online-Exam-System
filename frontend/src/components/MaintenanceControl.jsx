@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import api from "../pages/services/api";
-import "../css/admin/MaintenanceControl.css";
+import "../css/academicdean/MaintenanceControl.css";
 
 export default function MaintenanceControl() {
     const [enabled, setEnabled] = useState(false);

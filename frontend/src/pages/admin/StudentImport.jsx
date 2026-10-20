@@ -8,7 +8,7 @@ import {
     AlertCircle
 } from "lucide-react";
 import api from "../services/api";
-import "../../css/admin/student-import.css";
+import "../../css/academicdean/student-import.css";
 
 export default function StudentImport() {
     const fileInputRef = useRef(null);

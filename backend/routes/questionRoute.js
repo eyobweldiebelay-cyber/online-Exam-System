@@ -20,22 +20,22 @@ const router = express.Router();
 router.use(authenticate);
 
 // View questions
-router.get("/", authorize("admin", "teacher"), getQuestions);
-router.get("/:id", authorize("admin", "teacher"), getQuestionById);
+router.get("/", authorize("academic_dean", "teacher"), getQuestions);
+router.get("/:id", authorize("academic_dean", "teacher"), getQuestionById);
 
-// Admin and Teacher can manage eligible questions.
+// academic_dean and Teacher can manage eligible questions.
 // Department permissions must also be enforced in questionService.js.
-router.put("/:id", authorize("admin", "teacher"), updateQuestion);
+router.put("/:id", authorize("academic_dean", "teacher"), updateQuestion);
 
 router.patch(
     "/:id/deactivate",
-    authorize("admin", "teacher"),
+    authorize("academic_dean", "teacher"),
     deactivateQuestion
 );
 
 router.patch(
     "/:id/activate",
-    authorize("admin", "teacher"),
+    authorize("academic_dean", "teacher"),
     activateQuestion
 );
 

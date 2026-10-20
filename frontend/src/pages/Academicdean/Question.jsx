@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getAllQuestions } from "../services/questionService";
-import "../../css/admin/question.css";
+import "../../css/academicdean/question.css";
 
 const Question = () => {
     const [questions, setQuestions] = useState([]);

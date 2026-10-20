@@ -8,35 +8,35 @@ const authorize = require("../middleware/roleMiddleware");
 // All program routes require authentication.
 router.use(authenticate);
 
-// Admin and Teacher can read programs for their respective workflows.
+// academic_dean and Teacher can read programs for their respective workflows.
 router.get(
     "/",
-    authorize("admin", "teacher"),
+    authorize("academic_dean", "teacher"),
     programController.getAllPrograms
 );
 
 router.get(
     "/:id",
-    authorize("admin", "teacher"),
+    authorize("academic_dean", "teacher"),
     programController.getProgramById
 );
 
-// Only Admin can manage programs.
+// Only academic_dean can manage programs.
 router.post(
     "/",
-    authorize("admin"),
+    authorize("academic_dean"),
     programController.createProgram
 );
 
 router.put(
     "/:id",
-    authorize("admin"),
+    authorize("academic_dean"),
     programController.updateProgram
 );
 
 router.delete(
     "/:id",
-    authorize("admin"),
+    authorize("academic_dean"),
     programController.deactivateProgram
 );
 

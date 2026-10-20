@@ -16,10 +16,12 @@ const checkDepartmentAccess = (user, departmentId) => {
 
     const role = String(user.role || "").toLowerCase();
 
-    if (role === "admin") {
+    // Admin and Academic Dean can access all departments.
+    if (("academic_dean").includes(role)) {
         return;
     }
 
+    // Teachers are restricted to their assigned department.
     if (role === "teacher") {
         if (
             !user.department_id ||
@@ -34,9 +36,11 @@ const checkDepartmentAccess = (user, departmentId) => {
         return;
     }
 
-    throw createError("You are not authorized to manage questions.", 403);
+    throw createError(
+        "You are not authorized to manage questions.",
+        403
+    );
 };
-
 // Get all questions.
 // Admin sees all departments; Teacher sees their assigned department.
 const getQuestions = async (user) => {
@@ -46,7 +50,7 @@ const getQuestions = async (user) => {
 
     const role = String(user.role || "").toLowerCase();
 
-    if (!["admin", "teacher"].includes(role)) {
+    if (!["academic_dean", "teacher"].includes(role)) {
         throw createError("You are not authorized to view questions.", 403);
     }
 
@@ -118,7 +122,7 @@ const getQuestionById = async (id, user) => {
 
     const role = String(user.role || "").toLowerCase();
 
-    if (!["admin", "teacher"].includes(role)) {
+    if (!["academic_dean", "teacher"].includes(role)) {
         throw createError("You are not authorized to view questions.", 403);
     }
 

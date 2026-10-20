@@ -7,7 +7,7 @@ import {
     publishExam
 } from "../services/examService";
 
-import "../../css/admin/exams.css";
+import "../../css/academicdean/exams.css";
 
 const Exams = () => {
     const navigate = useNavigate();
@@ -128,7 +128,7 @@ const Exams = () => {
 
                 <button
                     className="exam-create-btn"
-                    onClick={() => navigate("/admin/exams/create")}
+                    onClick={() => navigate("/academic-dean/exams/create")}
                 >
                     + Add Exam
                 </button>
@@ -162,7 +162,7 @@ const Exams = () => {
 
                         <button
                             onClick={() =>
-                                navigate("/admin/exams/create")
+                                navigate("/academic-dean/exams/create")
                             }
                         >
                             Create Your First Exam
@@ -271,7 +271,7 @@ const Exams = () => {
                                                     className="action-edit"
                                                     onClick={() =>
                                                         navigate(
-                                                            `/admin/exams/edit/${exam.id}`
+                                                            `/academic-dean/exams/edit/${exam.id}`
                                                         )
                                                     }
                                                 >
@@ -280,7 +280,7 @@ const Exams = () => {
                                                 
                                             <button
                                             className="action-edit"
-                                            onClick={() => navigate(`/admin/exams/${exam.id}/questions`)}
+                                            onClick={() => navigate(`/academic-dean/exams/${exam.id}/questions`)}
                                                   >
                                                Manage Questions
                                                  </button>

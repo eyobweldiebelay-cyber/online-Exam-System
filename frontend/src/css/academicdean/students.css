@@ -290,3 +290,201 @@
         flex-wrap: wrap;
     }
 }
+
+/* Admin student password reset */
+.students-action-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border: 1px solid #b8c9f5;
+    border-radius: 6px;
+    background: #eef3ff;
+    color: #244db2;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.students-action-reset:hover:not(:disabled) {
+    background: #dfe8ff;
+}
+
+.students-action-reset:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.student-reset-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgb(15 23 42 / 55%);
+    overflow-y: auto;
+}
+
+.student-reset-dialog {
+    width: 100%;
+    max-width: 470px;
+    padding: 26px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    color: #172033;
+    box-shadow: 0 20px 60px rgb(0 0 0 / 20%);
+}
+
+.student-reset-dialog-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.student-reset-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #eaf0ff;
+    color: #244db2;
+}
+
+.student-reset-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.student-reset-close:hover {
+    background: #f1f5f9;
+}
+
+.student-reset-dialog h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+}
+
+.student-reset-student-name {
+    margin: 0 0 5px;
+    font-weight: 600;
+}
+
+.student-reset-student-id {
+    margin: 3px 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.student-reset-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 20px 0;
+    padding: 12px;
+    border: 1px solid #f3d59b;
+    border-radius: 8px;
+    background: #fff9eb;
+    color: #805514;
+}
+
+.student-reset-warning svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.student-reset-warning p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.student-reset-password-label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.student-reset-password-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.student-reset-password-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 11px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #f8fafc;
+    color: #172033;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.student-reset-copy-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #fff;
+    color: #334155;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.student-reset-copy-button:hover {
+    background: #f1f5f9;
+}
+
+.student-reset-copy-message {
+    margin: 8px 0 0;
+    color: #166534;
+    font-size: 13px;
+}
+
+.student-reset-reminder {
+    margin: 16px 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.student-reset-done {
+    width: 100%;
+    justify-content: center;
+}
+
+@media (max-width: 520px) {
+    .student-reset-dialog {
+        padding: 20px;
+    }
+
+    .student-reset-password-row {
+        flex-direction: column;
+    }
+
+    .student-reset-copy-button {
+        min-height: 40px;
+    }
+}

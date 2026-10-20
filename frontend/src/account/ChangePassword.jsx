@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
@@ -10,7 +9,7 @@ import "../css/change-password.css";
 
 function ChangePassword() {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user, setUser, logout } = useAuth();
 
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -23,6 +22,26 @@ function ChangePassword() {
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+
+    const getHomePath = (role) => {
+        switch (
+            String(role || "")
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, "_")
+        ) {
+            case "admin":
+                return "/admin";
+            case "academic_dean":
+                return "/academic-dean";
+            case "teacher":
+                return "/teacher";
+            case "student":
+                return "/student";
+            default:
+                return "/login";
+        }
+    };
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -46,7 +65,14 @@ function ChangePassword() {
         }
 
         if (currentPassword === newPassword) {
-            setError("Your new password must be different from your current password.");
+            setError(
+                "Your new password must be different from your current password."
+            );
+            return;
+        }
+
+        if (!user) {
+            setError("Your session is unavailable. Please log in again.");
             return;
         }
 
@@ -58,34 +84,41 @@ function ChangePassword() {
                 newPassword
             );
 
+            // The API must confirm success before the local state is updated.
             const updatedUser = {
                 ...user,
-                must_change_password: false
+                must_change_password: false,
             };
 
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-
-            if (sessionStorage.getItem("user")) {
-                sessionStorage.setItem("user", JSON.stringify(updatedUser));
+            // Synchronize React authentication state and persisted user data.
+            if (typeof setUser === "function") {
+                setUser(updatedUser);
             }
 
-            setMessage(
-                response.message || "Password changed successfully."
+            localStorage.setItem(
+                "user",
+                JSON.stringify(updatedUser)
             );
 
-            setTimeout(() => {
-                if (updatedUser.role === "admin") {
-                    navigate("/admin", { replace: true });
-                } else if (updatedUser.role === "teacher") {
-                    navigate("/teacher", { replace: true });
-                } else {
-                    navigate("/student", { replace: true });
-                }
-            }, 1000);
+            // Clear password fields after success.
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+
+            setMessage(
+                response?.message || "Password changed successfully."
+            );
+
+            // Keep the existing authenticated session and open the correct dashboard.
+            navigate(getHomePath(updatedUser.role), {
+                replace: true,
+            });
         } catch (err) {
+            console.error("Change password error:", err);
+
             setError(
                 err.response?.data?.message ||
-                "Unable to change your password. Please try again."
+                    "Unable to change your password. Please try again."
             );
         } finally {
             setSubmitting(false);
@@ -109,7 +142,10 @@ function ChangePassword() {
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="change-password-form">
+                <form
+                    onSubmit={handleSubmit}
+                    className="change-password-form"
+                >
                     <div className="change-password-group">
                         <label htmlFor="currentPassword">
                             Current Password
@@ -120,26 +156,31 @@ function ChangePassword() {
                                 id="currentPassword"
                                 type={showCurrent ? "text" : "password"}
                                 value={currentPassword}
-                                onChange={(e) =>
-                                    setCurrentPassword(e.target.value)
+                                onChange={(event) =>
+                                    setCurrentPassword(event.target.value)
                                 }
                                 placeholder="Enter current password"
                                 autoComplete="current-password"
+                                required
                             />
 
                             <button
                                 type="button"
                                 className="change-password-eye"
-                                onClick={() => setShowCurrent((value) => !value)}
+                                onClick={() =>
+                                    setShowCurrent((value) => !value)
+                                }
                                 aria-label={
                                     showCurrent
                                         ? "Hide current password"
                                         : "Show current password"
                                 }
                             >
-                                {showCurrent
-                                    ? <EyeOff size={20} />
-                                    : <Eye size={20} />}
+                                {showCurrent ? (
+                                    <EyeOff size={20} />
+                                ) : (
+                                    <Eye size={20} />
+                                )}
                             </button>
                         </div>
                     </div>
@@ -154,26 +195,31 @@ function ChangePassword() {
                                 id="newPassword"
                                 type={showNew ? "text" : "password"}
                                 value={newPassword}
-                                onChange={(e) =>
-                                    setNewPassword(e.target.value)
+                                onChange={(event) =>
+                                    setNewPassword(event.target.value)
                                 }
                                 placeholder="Enter new password"
                                 autoComplete="new-password"
+                                required
                             />
 
                             <button
                                 type="button"
                                 className="change-password-eye"
-                                onClick={() => setShowNew((value) => !value)}
+                                onClick={() =>
+                                    setShowNew((value) => !value)
+                                }
                                 aria-label={
                                     showNew
                                         ? "Hide new password"
                                         : "Show new password"
                                 }
                             >
-                                {showNew
-                                    ? <EyeOff size={20} />
-                                    : <Eye size={20} />}
+                                {showNew ? (
+                                    <EyeOff size={20} />
+                                ) : (
+                                    <Eye size={20} />
+                                )}
                             </button>
                         </div>
                     </div>
@@ -188,38 +234,49 @@ function ChangePassword() {
                                 id="confirmPassword"
                                 type={showConfirm ? "text" : "password"}
                                 value={confirmPassword}
-                                onChange={(e) =>
-                                    setConfirmPassword(e.target.value)
+                                onChange={(event) =>
+                                    setConfirmPassword(event.target.value)
                                 }
                                 placeholder="Confirm new password"
                                 autoComplete="new-password"
+                                required
                             />
 
                             <button
                                 type="button"
                                 className="change-password-eye"
-                                onClick={() => setShowConfirm((value) => !value)}
+                                onClick={() =>
+                                    setShowConfirm((value) => !value)
+                                }
                                 aria-label={
                                     showConfirm
                                         ? "Hide confirmation password"
                                         : "Show confirmation password"
                                 }
                             >
-                                {showConfirm
-                                    ? <EyeOff size={20} />
-                                    : <Eye size={20} />}
+                                {showConfirm ? (
+                                    <EyeOff size={20} />
+                                ) : (
+                                    <Eye size={20} />
+                                )}
                             </button>
                         </div>
                     </div>
 
                     {error && (
-                        <p className="change-password-error" role="alert">
+                        <p
+                            className="change-password-error"
+                            role="alert"
+                        >
                             {error}
                         </p>
                     )}
 
                     {message && (
-                        <p className="change-password-success" role="status">
+                        <p
+                            className="change-password-success"
+                            role="status"
+                        >
                             {message}
                         </p>
                     )}
@@ -239,13 +296,7 @@ function ChangePassword() {
                             type="button"
                             className="change-password-cancel"
                             onClick={() =>
-                                navigate(
-                                    user?.role === "admin"
-                                        ? "/admin"
-                                        : user?.role === "teacher"
-                                            ? "/teacher"
-                                            : "/student"
-                                )
+                                navigate(getHomePath(user?.role))
                             }
                             disabled={submitting}
                         >

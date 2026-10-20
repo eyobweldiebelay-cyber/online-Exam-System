@@ -10,8 +10,7 @@ const AuthContext = createContext(null);
 
 function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
-        const savedUser =
-            localStorage.getItem("user");
+        const savedUser = localStorage.getItem("user");
 
         if (!savedUser) {
             return null;
@@ -65,6 +64,7 @@ function AuthProvider({ children }) {
         <AuthContext.Provider
             value={{
                 user,
+                setUser,
                 loading,
                 login,
                 logout

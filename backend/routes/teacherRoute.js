@@ -13,19 +13,44 @@ const {
 
 const router = express.Router();
 
-// Every Teacher Management endpoint requires an Admin account.
+// Every Teacher Management endpoint requires authentication.
 router.use(authenticate);
-router.use(authorize("admin"));
 
-// List and create Teacher accounts.
-router.get("/", getAllTeachers);
-router.post("/", createTeacher);
+// List existing Teacher accounts.
+// Admin manages accounts; Academic Dean needs the list for assignments.
+router.get(
+    "/",
+    authorize("admin", "academic_dean"),
+    getAllTeachers
+);
 
-// Update Teacher details and account status.
-router.put("/:id", updateTeacher);
-router.patch("/:id/status", updateTeacherStatus);
+// Only Admin can create Teacher accounts.
+router.post(
+    "/",
+    authorize("admin"),
+    createTeacher
+);
 
-// Reset a Teacher's password.
-router.patch("/:id/reset-password", resetTeacherPassword);
+// Admin and Academic Dean can update teacher details.
+// Academic Dean uses this endpoint to assign program and department.
+router.put(
+    "/:id",
+    authorize("admin", "academic_dean"),
+    updateTeacher
+);
+
+// Only Admin can change account status.
+router.patch(
+    "/:id/status",
+    authorize("admin"),
+    updateTeacherStatus
+);
+
+// Only Admin can reset a Teacher's password.
+router.patch(
+    "/:id/reset-password",
+    authorize("admin"),
+    resetTeacherPassword
+);
 
 module.exports = router;

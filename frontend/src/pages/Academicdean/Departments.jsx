@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import api from "../../pages/services/api";
+import "../../css/academicdean/departments.css";
 
 const Department = () => {
     const [departments, setDepartments] = useState([]);
@@ -190,10 +191,7 @@ const Department = () => {
     return (
         <div className="admin-page department-page">
             <div className="page-header">
-                <div>
-                    <h1>Department Management</h1>
-                    <p>Manage departments and their associated programs.</p>
-                </div>
+               
 
                 <button
                     type="button"

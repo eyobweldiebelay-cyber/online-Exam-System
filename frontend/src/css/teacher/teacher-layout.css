@@ -42,3 +42,76 @@ html.dark {
     flex-direction: column;
   }
 }
+
+.teacher-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--teacher-page-bg, #f8fafc);
+  color: var(--teacher-page-text, #172033);
+}
+
+.teacher-layout-body {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: calc(100vh - 76px);
+  width: 100%;
+  min-width: 0;
+}
+
+.teacher-layout-content {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  max-width: none;
+  min-height: calc(100vh - 76px);
+  margin: 0;
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+html.dark {
+  --teacher-page-bg: #0b1120;
+  --teacher-page-text: #f3f4f6;
+}
+
+@media (max-width: 760px) {
+  .teacher-layout-body {
+    flex-direction: row;
+  }
+
+  .teacher-layout-content {
+    width: 0;
+    min-width: 0;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-layout-content {
+    min-height: calc(100vh - 66px);
+  }
+}
+/* Admin navbar background only */
+.admin-layout .teacher-navbar {
+  background-color: #142b4a !important;
+  color: #ffffff !important;
+}
+
+/* Navbar text and icons */
+.admin-layout .teacher-navbar h1,
+.admin-layout .teacher-navbar h2,
+.admin-layout .teacher-navbar p,
+.admin-layout .teacher-navbar span,
+.admin-layout .teacher-navbar button,
+.admin-layout .teacher-navbar svg {
+  color: #ffffff !important;
+}
+
+/* Navbar borders */
+.admin-layout .teacher-navbar {
+  border-bottom: 1px solid #243e5e;
+}

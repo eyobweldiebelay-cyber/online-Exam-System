@@ -8,35 +8,35 @@ const authorize = require("../middleware/roleMiddleware");
 
 router.use(authenticate);
 
-// Admin and Teacher can list academic years for the import form.
+// academic_dean and Teacher can list academic years for the import form.
 router.get(
     "/",
-    authorize("admin", "teacher"),
+    authorize("academic_dean", "teacher"),
     academicYearController.getAllAcademicYears
 );
 
-// Only Admin can manage academic years.
+// Only academic_dean  can manage academic years.
 router.get(
     "/:id",
-    authorize("admin"),
+    authorize("academic_dean"),
     academicYearController.getAcademicYearById
 );
 
 router.post(
     "/",
-    authorize("admin"),
+    authorize("academic_dean"),
     academicYearController.createAcademicYear
 );
 
 router.put(
     "/:id",
-    authorize("admin"),
+    authorize("academic_dean"),
     academicYearController.updateAcademicYear
 );
 
 router.patch(
     "/:id/status",
-    authorize("admin"),
+    authorize("academic_dean"),
     academicYearController.updateAcademicYearStatus
 );
 

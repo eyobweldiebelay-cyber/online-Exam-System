@@ -7,30 +7,41 @@ async function getAllTeachers(req, res) {
         return res.status(200).json({ teachers });
     } catch (error) {
         console.error("Get teachers error:", error);
-        return res.status(500).json({ message: "Failed to load teachers" });
+        return res.status(500).json({
+            message: "Failed to load teachers"
+        });
     }
 }
 
+// Admin creates the login account first.
+// Academic Dean assigns program and department separately.
 async function createTeacher(req, res) {
     try {
-        const { username, program_id, department_id } = req.body;
+        const { full_name, username } = req.body;
 
-        if (!username || !program_id || !department_id) {
+        if (!full_name || !String(full_name).trim() ||
+            !username || !String(username).trim()) {
             return res.status(400).json({
-                message: "Username, program and department are required"
+                message: "Full name and username are required"
             });
         }
 
         const result = await teacherService.createTeacher({
-            username,
-            program_id,
-            department_id
+            full_name,
+            username
         });
 
         return res.status(201).json(result);
     } catch (error) {
-        const status = error.message.includes("already exists") ? 409 : 400;
-        return res.status(status).json({ message: error.message });
+        console.error("Create teacher error:", error);
+
+        const status = error.message.includes("already exists")
+            ? 409
+            : 400;
+
+        return res.status(status).json({
+            message: error.message
+        });
     }
 }
 
@@ -44,7 +55,10 @@ async function updateTeacher(req, res) {
         return res.status(200).json(result);
     } catch (error) {
         const status = error.message === "Teacher not found" ? 404 : 400;
-        return res.status(status).json({ message: error.message });
+
+        return res.status(status).json({
+            message: error.message
+        });
     }
 }
 
@@ -67,9 +81,13 @@ async function updateTeacherStatus(req, res) {
         return res.status(200).json(result);
     } catch (error) {
         const status = error.message === "Teacher not found" ? 404 : 400;
-        return res.status(status).json({ message: error.message });
+
+        return res.status(status).json({
+            message: error.message
+        });
     }
 }
+
 async function resetTeacherPassword(req, res) {
     try {
         const result = await teacherService.resetTeacherPassword(
@@ -91,6 +109,7 @@ async function resetTeacherPassword(req, res) {
         });
     }
 }
+
 module.exports = {
     getAllTeachers,
     createTeacher,

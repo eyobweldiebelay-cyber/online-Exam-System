@@ -1,0 +1,213 @@
+
+/* Page */
+.student-import-page {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+/* Heading */
+.student-import-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.student-import-heading-icon,
+.student-import-card-icon,
+.student-import-upload-icon,
+.student-import-info-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Information message */
+.student-import-info {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    border: 1px solid #f0d58a;
+    border-radius: 8px;
+    background: #fff8e5;
+    color: #684d08;
+}
+
+.student-import-info p {
+    margin: 6px 0 0;
+    line-height: 1.6;
+}
+
+/* Upload card */
+.student-import-card {
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #172033;
+}
+
+.student-import-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.student-import-card-heading h2,
+.student-import-requirements h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.student-import-card-heading p,
+.student-import-requirements p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Buttons */
+.student-import-template-button,
+.student-import-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.student-import-template-button {
+    margin-bottom: 20px;
+    background: #e8efff;
+    color: #244db5;
+}
+
+.student-import-submit {
+    width: 100%;
+    margin-top: 20px;
+    background: #2454d6;
+    color: #ffffff;
+}
+
+.student-import-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* File upload area */
+.student-import-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 16px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.student-import-dropzone input {
+    width: 100%;
+    max-width: 280px;
+}
+
+.student-import-file-limit {
+    color: #64748b;
+    font-size: 12px;
+}
+
+/* Messages */
+.student-import-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    margin-top: 16px;
+    border-radius: 8px;
+}
+
+.student-import-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.student-import-message.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Import summary */
+.student-import-summary {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.student-import-summary > div {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 8px;
+    background: #f1f5f9;
+}
+
+/* Required columns */
+.student-import-requirements {
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #172033;
+}
+
+.student-import-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.student-import-columns code {
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #e8efff;
+    color: #244db5;
+}
+
+.student-import-note {
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .student-import-page {
+        padding: 12px;
+    }
+
+    .student-import-card {
+        padding: 16px;
+    }
+
+    .student-import-summary {
+        flex-direction: column;
+    }
+
+    .student-import-columns {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

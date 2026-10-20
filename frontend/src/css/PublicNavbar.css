@@ -6,7 +6,7 @@
     right: 0;
     z-index: 1000;
     width: 100%;
-    background: var(--public-nav-bg, #ffffff);
+    background: var(--public-nav-bg, hsl(0, 9%, 80%));
     border-bottom: 1px solid var(--public-border, #e5e7eb);
     box-shadow: 0 3px 15px rgba(15, 23, 42, 0.04);
 }
@@ -19,6 +19,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 28px;
+    background-color: #cad1dc;
 }
 
 .public-brand {

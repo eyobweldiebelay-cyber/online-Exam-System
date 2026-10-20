@@ -7,7 +7,7 @@ import {
   deactivateProgram,
 } from "../services/programService";
 import api from "../services/api";
-import "../../css/admin/program.css";
+import "../../css/academicdean/program.css";
 
 const initialForm = {
   name: "",

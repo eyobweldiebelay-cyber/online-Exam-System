@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 import {
@@ -12,16 +12,18 @@ import {
 import { getAllDepartments } from "../services/departmentService";
 import { getAllPrograms } from "../services/programService";
 
-import "../../css/admin/question.css";
+import "../../css/academicdean/question.css";
 
 const QuestionForm = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { questionId } = useParams();
     const { user } = useAuth();
 
     const isEditMode = Boolean(questionId);
     const role = String(user?.role || "").toLowerCase();
     const isTeacher = role === "teacher";
+    const isAcademicDean = role === "academic_dean";
 
     const assignedDepartmentId = user?.department_id
         ? Number(user.department_id)
@@ -47,6 +49,25 @@ const QuestionForm = () => {
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [error, setError] = useState("");
+
+    // Role-specific fallback route.
+    const getQuestionsPage = () => {
+        if (isTeacher) return "/teacher/questions";
+        if (isAcademicDean) return "/academic-dean/questions";
+        return "/admin/questions";
+    };
+
+    // Return to the page the user came from when possible.
+    // Otherwise, use the role-specific question page.
+    const handleCancel = () => {
+        if (loading) return;
+
+        if (location.key && location.key !== "default") {
+            navigate(-1);
+        } else {
+            navigate(getQuestionsPage(), { replace: true });
+        }
+    };
 
     // Teachers may only select their assigned department.
     const availableDepartments = departments.filter((department) => {
@@ -82,9 +103,6 @@ const QuestionForm = () => {
                 Number(teacherDepartment.program_id)
         );
     });
-
-    const getQuestionsPage = () =>
-        isTeacher ? "/teacher/questions" : "/admin/questions";
 
     // Load programs and departments.
     const loadReferenceData = async () => {
@@ -196,9 +214,7 @@ const QuestionForm = () => {
                         program_id: String(
                             assignedDepartment.program_id
                         ),
-                        department_id: String(
-                            assignedDepartment.id
-                        )
+                        department_id: String(assignedDepartment.id)
                     }));
                 }
 
@@ -233,7 +249,6 @@ const QuestionForm = () => {
         const { name, value } = event.target;
 
         if (isTeacher) {
-            // Teacher program and department are assigned by the system.
             return;
         }
 
@@ -416,7 +431,6 @@ const QuestionForm = () => {
             )}
 
             <form className="question-form" onSubmit={handleSubmit}>
-                {/* Program */}
                 <div className="form-group">
                     <label htmlFor="program_id">Program</label>
 
@@ -438,7 +452,6 @@ const QuestionForm = () => {
                     </select>
                 </div>
 
-                {/* Department */}
                 <div className="form-group">
                     <label htmlFor="department_id">Department</label>
 
@@ -479,7 +492,6 @@ const QuestionForm = () => {
                     )}
                 </div>
 
-                {/* Question text */}
                 <div className="form-group">
                     <label htmlFor="question_text">Question</label>
 
@@ -495,7 +507,6 @@ const QuestionForm = () => {
                     />
                 </div>
 
-                {/* Marks */}
                 <div className="form-group">
                     <label htmlFor="marks">Marks</label>
 
@@ -512,7 +523,6 @@ const QuestionForm = () => {
                     />
                 </div>
 
-                {/* Answer options */}
                 <div className="options-section">
                     <div className="options-header">
                         <div>
@@ -566,12 +576,11 @@ const QuestionForm = () => {
                     })}
                 </div>
 
-                {/* Actions */}
                 <div className="question-form-actions">
                     <button
                         type="button"
                         className="form-cancel-button"
-                        onClick={() => navigate(getQuestionsPage())}
+                        onClick={handleCancel}
                         disabled={loading}
                     >
                         Cancel

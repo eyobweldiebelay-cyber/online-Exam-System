@@ -13,19 +13,19 @@ router.use(authMiddleware);
 // or delete assignments.
 router.get(
     "/",
-    roleMiddleware(["admin"]),
+    roleMiddleware("academic_dean"),
     examAssignmentController.getAllAssignments
 );
 
 router.post(
     "/",
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     examAssignmentController.createAssignment
 );
 
 router.delete(
     "/:id",
-    roleMiddleware(["admin"]),
+    roleMiddleware("academic_dean"),
     examAssignmentController.deleteAssignment
 );
 
@@ -35,7 +35,7 @@ router.get(
     "/student/:studentId",
     (req, res, next) => {
         if (
-            req.user.role === "admin" ||
+            req.user.role === "academic_dean" ||
             String(req.user.id) === String(req.params.studentId)
         ) {
             return next();

@@ -53,4 +53,6 @@ app.use("/api/teachers", teacherRoute);
 const teacerWorkspace = require("./routes/teacherWorkspaceRoute");
 app.use("/api/teacher-workspace", teacerWorkspace);
 
+app.use("/api/academic-deans",require("./routes/academicDeanRoutes"));
+
 module.exports = app;

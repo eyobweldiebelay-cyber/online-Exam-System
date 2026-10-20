@@ -160,3 +160,148 @@ html.dark .teacher-sidebar-footer strong {
     display: none;
   }
 }
+
+/* ==========================================
+   ADMIN SIDEBAR OVERRIDES
+   Reuse Teacher sidebar styling without
+   changing the Teacher interface.
+========================================== */
+
+.admin-layout .teacher-sidebar {
+  flex: 0 0 250px;
+  width: 250px;
+  min-width: 250px;
+  min-height: calc(100vh - 76px);
+  box-sizing: border-box;
+}
+
+.admin-layout .teacher-sidebar-heading {
+  padding: 28px 18px 14px;
+}
+
+.admin-layout .teacher-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+.admin-layout .teacher-sidebar-link {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  white-space: normal;
+}
+
+.admin-layout .teacher-sidebar-link > span:last-child {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.admin-layout .teacher-sidebar-icon {
+  flex: 0 0 22px;
+}
+
+.admin-layout .teacher-sidebar-footer {
+  margin-top: auto;
+}
+
+/* Admin mobile navigation remains a vertical slide-out sidebar.
+   Requires the sidebar-open class to be applied by AdminLayout. */
+@media (max-width: 760px) {
+  .admin-layout .teacher-sidebar {
+    position: fixed;
+    top: 76px;
+    bottom: 0;
+    left: 0;
+    z-index: 1150;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    width: 270px;
+    min-width: 270px;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 1px solid #e5eaf1;
+    border-bottom: none;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .admin-layout .teacher-sidebar.admin-sidebar--open {
+    transform: translateX(0);
+  }
+
+  .admin-layout .teacher-sidebar-heading {
+    padding: 22px 18px 14px;
+  }
+
+  .admin-layout .teacher-sidebar-nav {
+    flex-direction: column;
+    overflow: visible;
+    padding: 0 12px;
+  }
+
+  .admin-layout .teacher-sidebar-link {
+    flex: 0 0 auto;
+    min-height: 46px;
+    gap: 11px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .admin-layout .teacher-sidebar-icon {
+    flex: 0 0 22px;
+    font-size: 18px;
+  }
+
+  .admin-layout .teacher-sidebar-footer {
+    display: flex;
+    margin-top: auto;
+  }
+  
+
+  html.dark .admin-layout .teacher-sidebar {
+    background: #111827;
+    border-right-color: #263244;
+  }
+}
+/* Admin sidebar background */
+.teacher-sidebar {
+  background-color: #142b4a !important;
+  color: #ffffff;
+}
+
+/* Sidebar text and icons */
+.teacher-sidebar .teacher-sidebar-link,
+.teacher-sidebar .teacher-sidebar-section-label,
+.teacher-sidebar .teacher-sidebar-footer strong,
+.teacher-sidebar .teacher-sidebar-footer span {
+  color: #ffffff;
+}
+
+/* Active menu background */
+.teacher-sidebar .teacher-sidebar-link.active {
+  background-color: #2864b4 !important;
+  color: #ffffff !important;
+}
+
+/* Hover background */
+.teacher-sidebar .teacher-sidebar-link:hover {
+  background-color: #203f67;
+  color: #ffffff;
+}

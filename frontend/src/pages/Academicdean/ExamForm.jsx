@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../pages/services/api";
+import api from "../services/api";
 
 import { getAllPrograms } from "../services/programService";
 
@@ -9,9 +9,9 @@ import {
     createExam,
     getExamById,
     updateExam
-} from "../../pages/services/examService";
+} from "../services/examService";
 
-import "../../css/admin/exams.css";
+import "../../css/academicdean/exams.css";
 
 const ExamForm = ({ examId = null }) => {
     const navigate = useNavigate();
@@ -327,7 +327,7 @@ const ExamForm = ({ examId = null }) => {
                 setSuccess("Exam updated successfully.");
 
                 setTimeout(() => {
-                    navigate("/admin/exams");
+                    navigate("/academic-dean/exams");
                 }, 800);
             } else {
                 await createExam(examData);
@@ -335,7 +335,7 @@ const ExamForm = ({ examId = null }) => {
                 setSuccess("Exam created successfully.");
 
                 setTimeout(() => {
-                    navigate("/admin/exams");
+                    navigate("/academic-dean/exams");
                 }, 800);
             }
         } catch (err) {
@@ -382,7 +382,7 @@ const ExamForm = ({ examId = null }) => {
                 <button
                     type="button"
                     className="exam-secondary-btn"
-                    onClick={() => navigate("/admin/exams")}
+                    onClick={() => navigate("/academic-dean/exams")}
                 >
                     ← Back to Exams
                 </button>
@@ -605,7 +605,7 @@ const ExamForm = ({ examId = null }) => {
                             type="button"
                             className="exam-secondary-btn"
                             onClick={() =>
-                                navigate("/admin/exams")
+                                navigate("/academic-dean/exams")
                             }
                             disabled={loading}
                         >

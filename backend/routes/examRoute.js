@@ -7,43 +7,43 @@ const authenticate = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 const examController = require("../controller/examControlller");
 
-// Admin routes
+// academic_dean routes
 router.post(
     "/",
     authenticate,
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     examController.createExam
 );
 
 router.get(
     "/",
     authenticate,
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     examController.getAllExams
 );
 
 router.patch(
     "/:id/publish",
     authenticate,
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     examController.publishExam
 );
 
 router.put(
     "/:id",
     authenticate,
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     examController.updateExam
 );
 
 router.delete(
     "/:id",
     authenticate,
-    roleMiddleware("admin"),
+    roleMiddleware("academic_dean"),
     examController.deleteExam
 );
 
-// Exam details
+// Exam details chek it latter which role do it
 router.get(
     "/:id",
     authenticate,

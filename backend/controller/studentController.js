@@ -467,6 +467,58 @@ async function importStudents(req, res) {
 }
 
 // ==========================================
+// RESET STUDENT PASSWORD (ADMIN ACTION)
+// ==========================================
+
+async function resetStudentPassword(req, res) {
+    try {
+        const studentId = Number(req.params.id);
+
+        if (!Number.isInteger(studentId) || studentId <= 0) {
+            return res.status(400).json({
+                message: "Invalid student ID"
+            });
+        }
+
+        const result = await studentService.resetStudentPassword(
+            studentId
+        );
+
+        // Prevent the temporary password response from being cached.
+        res.setHeader("Cache-Control", "no-store");
+
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error("Reset student password error:", error);
+
+        if (error.message === "Student account not found") {
+            return res.status(404).json({
+                message: error.message
+            });
+        }
+
+        return res.status(500).json({
+            message: "Failed to reset student password"
+        });
+    }
+}
+
+
+async function getStudentCount(req, res) {
+    try {
+        const count = await studentService.getStudentCount();
+
+        return res.status(200).json({ count });
+    } catch (error) {
+        console.error("Get student count error:", error);
+
+        return res.status(500).json({
+            message: "Failed to load student count."
+        });
+    }
+}
+
+// ==========================================
 // EXPORT CONTROLLERS
 // ==========================================
 
@@ -477,5 +529,7 @@ module.exports = {
     updateStudent,
     updateStudentStatus,
     changePassword,
-    importStudents
+    importStudents,
+    getStudentCount,
+    resetStudentPassword
 };

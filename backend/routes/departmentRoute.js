@@ -8,35 +8,34 @@ const authorize = require("../middleware/roleMiddleware");
 // All department routes require authentication.
 router.use(authenticate);
 
-// Admin and Teacher can read departments for their respective workflows.
-router.get(
-    "/",
-    authorize("admin", "teacher"),
+// academic_dean and Teacher can read departments for their respective workflows.
+router.get("/",
+    authorize("academic_dean", "teacher"),
     departmentController.getAllDepartments
 );
 
 router.get(
     "/:id",
-    authorize("admin", "teacher"),
+    authorize("academic_dean", "teacher"),
     departmentController.getDepartmentById
 );
 
-// Only Admin can manage departments.
+// Only academic_dean can manage departments.
 router.post(
     "/",
-    authorize("admin"),
+    authorize("academic_dean"),
     departmentController.createDepartment
 );
 
 router.put(
     "/:id",
-    authorize("admin"),
+    authorize("academic_dean"),
     departmentController.updateDepartment
 );
 
 router.delete(
     "/:id",
-    authorize("admin"),
+    authorize("academic_dean"),
     departmentController.deactivateDepartment
 );
 

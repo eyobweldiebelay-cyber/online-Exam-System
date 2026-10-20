@@ -67,11 +67,19 @@ function Login() {
                 return;
             }
 
-            // Admin login
-            if (role === "admin") {
-                navigate("/admin", { replace: true });
-                return;
-            }
+           
+ // Admin login
+if (role === "admin") {
+    navigate("/admin", { replace: true });
+    return;
+}
+
+// Academic Dean login
+if (role === "academic_dean") {
+    navigate("/academic-dean", { replace: true });
+    return;
+}
+
 
             // Teacher login
             if (role === "teacher") {
