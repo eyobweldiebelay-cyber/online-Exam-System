@@ -11,6 +11,7 @@ const TeacherDashboard = () => {
 
     const [summary, setSummary] = useState({
         students: 0,
+        studentsWhoTookExams: 0,
         questions: 0,
         passed: 0,
         failed: 0,
@@ -47,7 +48,7 @@ const TeacherDashboard = () => {
                 if (isMounted) {
                     setError(
                         err.response?.data?.message ||
-                        "Unable to load dashboard summary."
+                            "Unable to load dashboard summary."
                     );
 
                     console.error(
@@ -73,10 +74,18 @@ const TeacherDashboard = () => {
         {
             title: "Assigned Students",
             count: summary.students,
-            description: "View students in your department",
+            description: "View all students in your department",
             icon: "👥",
             path: "/teacher/students",
             className: "students",
+        },
+        {
+            title: "Students Who Took Exams",
+            count: `${summary.studentsWhoTookExams} / ${summary.students}`,
+            description: "Students who attempted exams / assigned students",
+            icon: "📝",
+            path: "/teacher/students",
+            className: "attempted",
         },
         {
             title: "Active Questions",
@@ -111,7 +120,9 @@ const TeacherDashboard = () => {
                     <p className="teacher-dashboard-eyebrow">
                         TEACHER WORKSPACE
                     </p>
+
                     <h1>Teacher Dashboard</h1>
+
                     <p className="teacher-dashboard-subtitle">
                         Manage your department's questions and monitor
                         student performance.
@@ -124,6 +135,7 @@ const TeacherDashboard = () => {
                             .charAt(0)
                             .toUpperCase()}
                     </div>
+
                     <div>
                         <strong>
                             {user?.name || user?.username || "Teacher"}
@@ -135,6 +147,7 @@ const TeacherDashboard = () => {
 
             <section className="teacher-assignment-card">
                 <div className="teacher-assignment-icon">🏫</div>
+
                 <div>
                     <span>YOUR ASSIGNMENT</span>
                     <h2>{departmentName}</h2>
@@ -171,6 +184,7 @@ const TeacherDashboard = () => {
                                 <span className="teacher-card-icon">
                                     {card.icon}
                                 </span>
+
                                 <span className="teacher-card-arrow">
                                     ↗
                                 </span>
@@ -200,10 +214,12 @@ const TeacherDashboard = () => {
                         onClick={() => navigate("/teacher/questions/new")}
                     >
                         <span>📄</span>
+
                         <div>
                             <strong>Import Questions</strong>
                             <p>Upload a CSV or Excel spreadsheet</p>
                         </div>
+
                         <span className="teacher-card-arrow">→</span>
                     </button>
 
@@ -212,10 +228,12 @@ const TeacherDashboard = () => {
                         onClick={() => navigate("/teacher/students")}
                     >
                         <span>👥</span>
+
                         <div>
                             <strong>View Assigned Students</strong>
-                            <p>See students in your department</p>
+                            <p>See all students and their exam status</p>
                         </div>
+
                         <span className="teacher-card-arrow">→</span>
                     </button>
 
@@ -224,10 +242,12 @@ const TeacherDashboard = () => {
                         onClick={() => navigate("/teacher/results")}
                     >
                         <span>📊</span>
+
                         <div>
                             <strong>Results & Performance</strong>
                             <p>Review available student results</p>
                         </div>
+
                         <span className="teacher-card-arrow">→</span>
                     </button>
                 </div>

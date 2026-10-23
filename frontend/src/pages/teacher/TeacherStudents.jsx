@@ -17,7 +17,6 @@ export default function TeacherStudents() {
             setError("");
 
             try {
-                // Correct endpoint for the teacher workspace backend
                 const response = await api.get(
                     "/teacher-workspace/students"
                 );
@@ -72,6 +71,7 @@ export default function TeacherStudents() {
                 student.name,
                 student.username,
                 student.student_code,
+                student.student_id,
                 student.email,
                 student.program_name,
                 student.department_name,
@@ -82,6 +82,17 @@ export default function TeacherStudents() {
             );
         });
     }, [students, search]);
+
+    // MySQL EXISTS can return 1/0; some drivers may return true/false.
+    function hasTakenExam(student) {
+        return (
+            student.has_taken_exam === 1 ||
+            student.has_taken_exam === true ||
+            student.has_taken_exam === "1"
+        );
+    }
+
+    const studentsWhoTookExams = students.filter(hasTakenExam).length;
 
     function getStudentName(student) {
         return (
@@ -119,13 +130,25 @@ export default function TeacherStudents() {
 
             <div className="teacher-students-toolbar">
                 <div className="teacher-students-count">
-                    <strong>{filteredStudents.length}</strong>
+                    <strong>
+                        {loading
+                            ? "..."
+                            : `${studentsWhoTookExams} / ${students.length}`}
+                    </strong>
 
                     <span>
-                        {filteredStudents.length === 1
-                            ? " student"
-                            : " students"}
+                        {" "}students took an exam
                     </span>
+
+                    <p>
+                        {loading
+                            ? "Loading student records..."
+                            : `${filteredStudents.length} ${
+                                  filteredStudents.length === 1
+                                      ? "student"
+                                      : "students"
+                              } displayed`}
+                    </p>
                 </div>
 
                 <input
@@ -168,50 +191,74 @@ export default function TeacherStudents() {
                             <tr>
                                 <th>Student</th>
                                 <th>Username / Student ID</th>
-                             {/*<th>Email</th>*/}   
                                 <th>Program</th>
                                 <th>Department</th>
+                                <th>Exam Status</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            {filteredStudents.map((student, index) => (
-                                <tr
-                                    key={
-                                        student.id ||
-                                        student.student_id ||
-                                        student.student_code ||
-                                        student.username ||
-                                        index
-                                    }
-                                >
-                                    <td>
-                                        <div className="teacher-student-identity">
-                                            <span className="teacher-student-avatar">
-                                                {getInitials(student) || "S"}
-                                            </span>
+                            {filteredStudents.map((student, index) => {
+                                const attempted = hasTakenExam(student);
 
-                                            <strong>
-                                                {getStudentName(student)}
-                                            </strong>
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        {student.student_code ||
-                                            student.username ||
+                                return (
+                                    <tr
+                                        key={
                                             student.id ||
                                             student.student_id ||
-                                            "—"}
-                                    </td>
+                                            student.student_code ||
+                                            student.username ||
+                                            index
+                                        }
+                                    >
+                                        <td>
+                                            <div className="teacher-student-identity">
+                                                <span className="teacher-student-avatar">
+                                                    {getInitials(student) || "S"}
+                                                </span>
 
-                                   {/*<td>{student.email || "—"}</td>*/} 
+                                                <strong>
+                                                    {getStudentName(student)}
+                                                </strong>
+                                            </div>
+                                        </td>
 
-                                    <td>{student.program_name || "—"}</td>
+                                        <td>
+                                            {student.student_code ||
+                                                student.username ||
+                                                student.id ||
+                                                student.student_id ||
+                                                "—"}
+                                        </td>
 
-                                    <td>{student.department_name || "—"}</td>
-                                </tr>
-                            ))}
+                                        <td>{student.program_name || "—"}</td>
+
+                                        <td>{student.department_name || "—"}</td>
+
+                                        <td>
+                                            <span
+                                                style={{
+                                                    display: "inline-block",
+                                                    padding: "4px 10px",
+                                                    borderRadius: "12px",
+                                                    fontSize: "12px",
+                                                    fontWeight: 600,
+                                                    color: attempted
+                                                        ? "#166534"
+                                                        : "#92400e",
+                                                    backgroundColor: attempted
+                                                        ? "#dcfce7"
+                                                        : "#fef3c7",
+                                                }}
+                                            >
+                                                {attempted
+                                                    ? "Took exam"
+                                                    : "Not taken"}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

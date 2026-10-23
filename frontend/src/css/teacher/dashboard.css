@@ -775,3 +775,35 @@
         box-sizing: border-box;
     }
 }
+
+/* Keep all five dashboard cards evenly spaced */
+.teacher-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    align-items: stretch;
+}
+
+/* Ensure every card uses the same width and spacing */
+.teacher-dashboard-card {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Tablet: two balanced columns */
+@media (max-width: 1000px) {
+    .teacher-dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+}
+
+/* Mobile: one card per row */
+@media (max-width: 600px) {
+    .teacher-dashboard-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+    }
+}
