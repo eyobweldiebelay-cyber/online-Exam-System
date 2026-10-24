@@ -93,9 +93,10 @@ router.post(
     createStudent
 );
 
+// FIX: Admin and Academic Dean can view the student list.
 router.get(
     "/",
-    authorize("admin"),
+    allowAcademicReporting,
     getAllStudents
 );
 

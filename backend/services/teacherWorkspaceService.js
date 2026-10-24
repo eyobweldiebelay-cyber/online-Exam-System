@@ -3,6 +3,7 @@ const db = require("../config/db");
 
 // Get Teacher workspace summary for the assigned department.
 async function getDashboard(departmentId) {
+    // Count all students assigned to the Teacher's department.
     const [[studentCount]] = await db.execute(
         `SELECT COUNT(*) AS total
          FROM students
@@ -10,6 +11,7 @@ async function getDashboard(departmentId) {
         [departmentId]
     );
 
+    // Count active questions in the Teacher's department.
     const [[questionCount]] = await db.execute(
         `SELECT COUNT(*) AS total
          FROM questions
@@ -18,37 +20,52 @@ async function getDashboard(departmentId) {
         [departmentId]
     );
 
+    // Count distinct students with an exam-attempt record.
+    const [[attemptedStudentCount]] = await db.execute(
+        `SELECT COUNT(DISTINCT ea.student_id) AS total
+         FROM exam_attempts ea
+         INNER JOIN students s ON ea.student_id = s.id
+         WHERE s.department_id = ?`,
+        [departmentId]
+    );
+
+    // Count passed and failed results in the Teacher's department.
     const [[resultCounts]] = await db.execute(
         `SELECT
             COUNT(*) AS total_results,
             SUM(
                 CASE
                     WHEN LOWER(r.result_status) IN ('pass', 'passed')
-                    THEN 1 ELSE 0
+                    THEN 1
+                    ELSE 0
                 END
             ) AS passed,
             SUM(
                 CASE
                     WHEN LOWER(r.result_status) IN ('fail', 'failed')
-                    THEN 1 ELSE 0
+                    THEN 1
+                    ELSE 0
                 END
             ) AS failed
          FROM results r
-         JOIN exam_attempts ea ON r.attempt_id = ea.id
-         JOIN students s ON ea.student_id = s.id
+         INNER JOIN exam_attempts ea ON r.attempt_id = ea.id
+         INNER JOIN students s ON ea.student_id = s.id
          WHERE s.department_id = ?`,
         [departmentId]
     );
 
     return {
         students: Number(studentCount.total) || 0,
+        studentsWhoTookExams:
+            Number(attemptedStudentCount.total) || 0,
         questions: Number(questionCount.total) || 0,
         passed: Number(resultCounts.passed) || 0,
         failed: Number(resultCounts.failed) || 0
     };
 }
 
-// List only students belonging to the Teacher's department.
+// List ALL students in the Teacher's department.
+// Include whether each student has an exam-attempt record.
 async function getDepartmentStudents(departmentId) {
     const [students] = await db.execute(
         `SELECT
@@ -62,11 +79,16 @@ async function getDepartmentStudents(departmentId) {
             d.name AS department_name,
             p.name AS program_name,
             s.academic_year,
-            s.status
+            s.status,
+            EXISTS (
+                SELECT 1
+                FROM exam_attempts ea
+                WHERE ea.student_id = s.id
+            ) AS has_taken_exam
          FROM students s
-         JOIN users u ON s.user_id = u.id
-         JOIN departments d ON s.department_id = d.id
-         JOIN programs p ON d.program_id = p.id
+         INNER JOIN users u ON s.user_id = u.id
+         INNER JOIN departments d ON s.department_id = d.id
+         INNER JOIN programs p ON d.program_id = p.id
          WHERE s.department_id = ?
          ORDER BY s.first_name ASC, s.last_name ASC`,
         [departmentId]
@@ -75,7 +97,7 @@ async function getDepartmentStudents(departmentId) {
     return students;
 }
 
-// List only results belonging to students in the Teacher's department.
+// List results belonging to students in the Teacher's department.
 async function getDepartmentResults(departmentId, filters = {}) {
     const conditions = ["s.department_id = ?"];
     const params = [departmentId];
@@ -127,12 +149,12 @@ async function getDepartmentResults(departmentId, filters = {}) {
             r.result_status,
             r.created_at
          FROM results r
-         JOIN exam_attempts ea ON r.attempt_id = ea.id
-         JOIN exams e ON ea.exam_id = e.id
-         JOIN students s ON ea.student_id = s.id
-         JOIN users u ON s.user_id = u.id
-         JOIN departments d ON s.department_id = d.id
-         JOIN programs p ON d.program_id = p.id
+         INNER JOIN exam_attempts ea ON r.attempt_id = ea.id
+         INNER JOIN exams e ON ea.exam_id = e.id
+         INNER JOIN students s ON ea.student_id = s.id
+         INNER JOIN users u ON s.user_id = u.id
+         INNER JOIN departments d ON s.department_id = d.id
+         INNER JOIN programs p ON d.program_id = p.id
          WHERE ${conditions.join(" AND ")}
          ORDER BY r.created_at DESC`,
         params
@@ -140,6 +162,7 @@ async function getDepartmentResults(departmentId, filters = {}) {
 
     return results;
 }
+
 // Get the logged-in Teacher's profile and academic assignment.
 async function getTeacherProfile(userId, departmentId) {
     const [rows] = await db.execute(
@@ -150,8 +173,8 @@ async function getTeacherProfile(userId, departmentId) {
             d.name AS department_name,
             p.name AS program_name
          FROM users u
-         JOIN departments d ON u.department_id = d.id
-         JOIN programs p ON d.program_id = p.id
+         INNER JOIN departments d ON u.department_id = d.id
+         INNER JOIN programs p ON d.program_id = p.id
          WHERE u.id = ?
            AND u.department_id = ?
          LIMIT 1`,
