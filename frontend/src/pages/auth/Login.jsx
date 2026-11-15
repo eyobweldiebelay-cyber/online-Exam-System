@@ -114,8 +114,8 @@ if (role === "academic_dean") {
         <div className="login-page">
             <div className="login-card">
                 <div className="login-header">
-                    <div className="whatisteerror">
-                        <img src={imaglogo} alt="whatiste error" />
+                    <div className="college-logo">
+                        <img src={imaglogo} alt="College logo" />
                     </div>
 
                     <h1>Welcome To Online Examination System</h1>
