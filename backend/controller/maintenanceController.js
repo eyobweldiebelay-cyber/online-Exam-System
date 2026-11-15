@@ -3,8 +3,7 @@ const maintenanceService = require("../services/maintenanceService");
 
 async function getStatus(req, res) {
     try {
-        const status =
-            await maintenanceService.getMaintenanceStatus();
+        const status =await maintenanceService.getMaintenanceStatus();
 
         return res.status(200).json({
             success: true,
