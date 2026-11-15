@@ -1,9 +1,15 @@
+
+/* ==============================
+   LOGIN PAGE
+================================ */
+
 .login-page {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 24px;
+    box-sizing: border-box;
     background: var(--background);
 }
 
@@ -11,6 +17,7 @@
     width: 100%;
     max-width: 430px;
     padding: 40px;
+    box-sizing: border-box;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -26,16 +33,12 @@
     width: 80px;
     height: 80px;
     margin: 0 auto 20px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     border-radius: 50%;
-
     background: var(--primary);
     color: white;
-
     font-size: 14px;
     font-weight: 700;
 }
@@ -61,6 +64,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    width: 100%;
+    min-width: 0;
 }
 
 .form-group label {
@@ -71,14 +76,11 @@
 .form-group input {
     width: 100%;
     height: 46px;
-
     padding: 0 14px;
-
+    box-sizing: border-box;
     border: 1px solid var(--border);
     border-radius: 8px;
-
     outline: none;
-
     background: var(--surface);
     color: var(--text);
 }
@@ -89,6 +91,8 @@
 
 .password-wrapper {
     position: relative;
+    width: 100%;
+    min-width: 0;
 }
 
 .password-wrapper input {
@@ -97,22 +101,17 @@
 
 .password-toggle {
     position: absolute;
-
     top: 50%;
     right: 12px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     padding: 0;
-
     border: none;
     background: transparent;
-
     color: var(--text-light);
-
     transform: translateY(-50%);
+    cursor: pointer;
 }
 
 .password-toggle:hover {
@@ -121,29 +120,32 @@
 
 .login-error {
     padding: 12px;
-
     border: 1px solid #fecaca;
     border-radius: 8px;
-
     background: #fef2f2;
     color: var(--danger);
-
     font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.login-message {
+    overflow-wrap: anywhere;
 }
 
 .login-button {
+    display: block;
     width: 100%;
-    height: 46px;
-
-    border: none;
-    border-radius: 8px;
-
-    background: var(--primary);
+    min-height: 50px;
+    padding: 10px;
+    margin-top: 10px;
+    background: #4545b7;
     color: white;
-
-    font-size: 15px;
-    font-weight: 600;
-
+    border: 2px solid rgb(33, 45, 32);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    opacity: 1;
+    visibility: visible;
     cursor: pointer;
 }
 
@@ -156,8 +158,132 @@
     opacity: 0.7;
 }
 
-@media (max-width: 480px) {
+/* ==============================
+   CHANGE PASSWORD PAGE
+================================ */
 
+.change-password-page.login-page {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
+    box-sizing: border-box;
+    overflow: visible;
+    background: var(--background);
+}
+
+.change-password-page .login-card {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    max-height: none;
+    margin: 10px auto;
+    padding: 28px;
+    box-sizing: border-box;
+    overflow: visible;
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.change-password-page .login-header h1,
+.change-password-page .login-header p,
+.change-password-page .form-group label {
+    color: var(--text);
+}
+
+.change-password-page .login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.change-password-page .form-group {
+    width: 100%;
+    min-width: 0;
+}
+
+.change-password-page .password-wrapper {
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+}
+
+.change-password-page .password-wrapper input {
+    flex: 1;
+    width: 0;
+    min-width: 0;
+    height: 46px;
+    padding: 10px 48px 10px 12px;
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+}
+
+.change-password-page .password-wrapper input:focus {
+    border-color: transparent;
+}
+
+.change-password-page .password-wrapper input::placeholder {
+    color: var(--text-light);
+    opacity: 1;
+}
+
+.change-password-page .password-toggle {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    color: var(--text-light);
+    background: transparent;
+    cursor: pointer;
+}
+
+.change-password-page .login-button {
+    width: 100%;
+    min-height: 46px;
+    flex-shrink: 0;
+}
+
+.change-password-page .login-error,
+.change-password-page .login-message {
+    overflow-wrap: anywhere;
+}
+
+/* ==============================
+   RESPONSIVE DESIGN
+================================ */
+
+@media (max-width: 600px) {
+    .change-password-page.login-page {
+        min-height: 100vh;
+        padding: 16px 12px;
+    }
+
+    .change-password-page .login-card {
+        padding: 22px 16px;
+        margin: 4px auto;
+    }
+}
+
+@media (max-width: 480px) {
     .login-page {
         padding: 16px;
     }
@@ -170,19 +296,3 @@
         font-size: 21px;
     }
 }
-.login-button {
-    display: block !important;
-    width: 100% !important;
-    height: 50px !important;
-    padding: 10px !important;
-    margin-top: 10px !important;
-    background: #4545b7 !important;
-    color: white !important;
-    border: 2px solid rgb(33, 45, 32) !important;
-    border-radius: 8px !important;
-    font-size: 16px !important;
-    font-weight: bold !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-/* changa password page */
